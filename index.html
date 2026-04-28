@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>İNTİKAM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,16 +52,27 @@
       gap: 12px;
     }
 #gameShell {
-  /* Genişliği ekranın %95'i ile sınırla, ama 800px'i geçmesin */
-  width: 95vw; 
-  max-width: 800px; 
-  
-  /* 16:9 oranını koru */
-  aspect-ratio: 16 / 9; 
-  
-  /* Kenar boşluklarını otomatik ayarla */
-  margin: auto;
-  position: relative;
+    /* Ekranın genişliğine göre değil, yüksekliğine göre ölçeklensin */
+    width: auto;
+    height: 90vh; /* Ekran yüksekliğinin %90'ını kapla */
+    aspect-ratio: 16 / 9;
+    margin: 0 auto;
+}
+
+@media (max-width: 760px) {
+    /* Telefonda yazılar hala çok büyükse buradaki değerleri düşür */
+    :root {
+        font-size: 12px; /* Tüm her şeyi orantılı olarak küçültür */
+    }
+    
+    .game-title {
+        font-size: 1.8rem !important; /* Başlığı daha kibar yapar */
+    }
+
+    .wood-button {
+        padding: 5px 10px !important;
+        font-size: 0.7rem !important;
+    }
 }
 
     #gameCanvas {
