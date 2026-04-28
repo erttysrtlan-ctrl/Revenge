@@ -1335,10 +1335,10 @@
       const meta = levelMeta[index];
       const act = index < 4 ? 0 : index < 8 ? 1 : 2;
       const heights = [
-        [392, 372, 392, 360],
-        [392, 360, 378, 348],
-        [392, 352, 372, 340]
-      ][act];
+  [392, 372, 392, 360],
+  [392, 360, 378, 348],
+  [392, 372, 385, 365] // Değerleri artırdık (Platformlar aşağı indi)
+][act];
       const chunkCount = 8 + index;
       let x = 0;
       let solids = [];
