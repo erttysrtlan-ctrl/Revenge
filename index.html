@@ -1,0 +1,3375 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İNTİKAM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent-gold: #f1b34a;
+      --accent-amber: #c8731f;
+      --accent-ice: #7bd0ff;
+      --accent-emerald: #5ce9ff;
+      --wood-dark: #5a3415;
+      --wood-mid: #895224;
+      --wood-light: #b67533;
+      --ui-black: #090b0d;
+      --hp-red: #d53535;
+      --mana-blue: #2e79de;
+      --pixel-yellow: #f6d554;
+      --shadow-deep: rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(84, 114, 136, 0.22), transparent 36%),
+        linear-gradient(180deg, #10151b 0%, #0a0d11 100%);
+      color: #f5ebd6;
+      font-family: "Press Start 2P", monospace;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 22px 14px 18px;
+    }
+
+    .page-shell {
+      width: min(100%, 980px);
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+    }
+
+    #gameShell {
+      position: relative;
+      width: min(94vw, 800px);
+      aspect-ratio: 16 / 9;
+      border: 6px solid #1c1208;
+      box-shadow:
+        0 0 0 4px #4d2f16,
+        0 28px 50px rgba(0, 0, 0, 0.45);
+      background: #050607;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: linear-gradient(180deg, #1d2831 0%, #0e1217 100%);
+      image-rendering: pixelated;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background:
+        linear-gradient(180deg, rgba(8, 10, 12, 0.35), rgba(7, 8, 10, 0.8)),
+        radial-gradient(circle at center, rgba(196, 131, 44, 0.16), transparent 58%);
+      pointer-events: auto;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 180ms ease, visibility 180ms ease;
+    }
+
+    .screen.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .screen-panel {
+      width: min(92%, 560px);
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+      padding: 18px 22px 18px;
+      background:
+        linear-gradient(180deg, rgba(32, 22, 13, 0.84), rgba(19, 15, 11, 0.92)),
+        linear-gradient(135deg, rgba(255, 184, 74, 0.08), transparent 55%);
+      border: 4px solid #2b1b0d;
+      box-shadow:
+        inset 0 0 0 3px rgba(195, 145, 75, 0.28),
+        0 16px 34px rgba(0, 0, 0, 0.45);
+    }
+
+    .screen-panel.wide {
+      width: min(94%, 720px);
+    }
+
+    .title-wrap {
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .game-title {
+      margin: 0;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(2.6rem, 7vw, 4.8rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+      color: var(--accent-gold);
+      text-shadow:
+        0 4px 0 #8a4916,
+        0 10px 18px rgba(0, 0, 0, 0.5);
+    }
+
+    .panel-title {
+      font-size: clamp(2rem, 5vw, 3rem);
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: clamp(0.44rem, 1.25vw, 0.62rem);
+      line-height: 1.65;
+      color: #efd7a7;
+      text-align: center;
+    }
+
+    .top-summary {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .summary-chip {
+      display: grid;
+      gap: 6px;
+      padding: 10px 8px;
+      background:
+        linear-gradient(180deg, rgba(79, 48, 20, 0.78), rgba(21, 15, 11, 0.9));
+      border: 3px solid rgba(88, 56, 25, 0.95);
+      text-align: center;
+      min-height: 62px;
+    }
+
+    .summary-label {
+      font-size: 0.34rem;
+      color: #d4b37f;
+      line-height: 1.5;
+    }
+
+    .summary-value {
+      font-size: 0.56rem;
+      color: #fff4d7;
+      line-height: 1.45;
+    }
+
+    .menu-actions {
+      width: min(100%, 390px);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .menu-actions .wood-button:first-child {
+      grid-column: 1 / -1;
+    }
+
+    .screen-footer-actions,
+    .pager-row {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .wood-button {
+      position: relative;
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 3px solid #351f0f;
+      background:
+        linear-gradient(180deg, rgba(255, 228, 163, 0.24), transparent 34%),
+        repeating-linear-gradient(
+          90deg,
+          rgba(80, 40, 14, 0.3) 0 8px,
+          rgba(139, 84, 40, 0.18) 8px 16px
+        ),
+        linear-gradient(180deg, var(--wood-light) 0%, var(--wood-mid) 58%, var(--wood-dark) 100%);
+      color: #fff5d6;
+      font: inherit;
+      font-size: 0.44rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow:
+        inset 0 2px 0 rgba(255, 245, 214, 0.28),
+        inset 0 -4px 0 rgba(47, 20, 4, 0.45),
+        0 6px 0 #1b1008,
+        0 10px 20px rgba(0, 0, 0, 0.26);
+      transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+      pointer-events: auto;
+    }
+
+    .wood-button.compact {
+      width: auto;
+      min-width: 148px;
+      min-height: 40px;
+      padding: 9px 14px;
+      font-size: 0.4rem;
+    }
+
+    .wood-button:hover {
+      filter: brightness(1.06);
+    }
+
+    .wood-button:active,
+    .wood-button.pressed {
+      transform: translateY(4px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 245, 214, 0.2),
+        inset 0 -2px 0 rgba(47, 20, 4, 0.45),
+        0 2px 0 #1b1008,
+        0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .wood-button:disabled {
+      cursor: default;
+      filter: grayscale(0.4) brightness(0.78);
+      opacity: 0.78;
+    }
+
+    .pager-text {
+      min-width: 88px;
+      text-align: center;
+      padding: 8px 10px;
+      border: 2px solid #17110b;
+      background: rgba(8, 8, 10, 0.35);
+      font-size: 0.38rem;
+      color: #f1dfb5;
+    }
+
+    .chapter-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .chapter-card,
+    .shop-card {
+      display: grid;
+      gap: 7px;
+      align-content: start;
+      padding: 10px;
+      background:
+        linear-gradient(180deg, rgba(48, 33, 20, 0.82), rgba(17, 13, 11, 0.92)),
+        linear-gradient(135deg, rgba(255, 199, 87, 0.08), transparent 55%);
+      border: 3px solid rgba(96, 65, 31, 0.95);
+      min-height: 152px;
+    }
+
+    .chapter-card.locked {
+      filter: grayscale(0.45) brightness(0.78);
+    }
+
+    .chapter-name,
+    .shop-title {
+      font-size: 0.52rem;
+      line-height: 1.45;
+      color: #fff4d7;
+    }
+
+    .chapter-copy,
+    .shop-copy,
+    .shop-level {
+      font-size: 0.34rem;
+      line-height: 1.62;
+      color: #e4c892;
+    }
+
+    .chapter-meta,
+    .shop-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.34rem;
+      color: #f5e1bc;
+    }
+
+    .meta-pill {
+      padding: 4px 6px;
+      border: 2px solid #17110b;
+      background: rgba(8, 8, 10, 0.35);
+      white-space: nowrap;
+    }
+
+    .shop-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .settings-grid {
+      width: 100%;
+      display: grid;
+      gap: 18px;
+    }
+
+    .setting-row {
+      display: grid;
+      gap: 10px;
+      color: #f0ddb3;
+    }
+
+    .setting-topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.42rem;
+    }
+
+    input[type="range"] {
+      appearance: none;
+      width: 100%;
+      height: 14px;
+      border: 3px solid #1f140b;
+      background: linear-gradient(180deg, #3b2e1a 0%, #23160d 100%);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(180deg, #e8edf2 0%, #a8b4c1 100%);
+      border: 3px solid #14191d;
+      box-shadow: 0 2px 0 rgba(255, 255, 255, 0.15) inset;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(180deg, #e8edf2 0%, #a8b4c1 100%);
+      border: 3px solid #14191d;
+      border-radius: 0;
+    }
+
+    .hud {
+      position: absolute;
+      inset: 14px;
+      display: none;
+      pointer-events: none;
+    }
+
+    .hud.active,
+    .tutorial.active,
+    .controls.active,
+    .game-over.active {
+      display: block;
+    }
+
+    .hud-tools {
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .hud-mini-button {
+      min-width: 70px;
+      min-height: 30px;
+      padding: 6px 8px;
+      border: 3px solid #111519;
+      background:
+        linear-gradient(180deg, rgba(96, 112, 132, 0.92), rgba(23, 31, 38, 0.98));
+      color: #fff4d7;
+      font: inherit;
+      font-size: 0.32rem;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .chapter-hud {
+      position: absolute;
+      left: 0;
+      top: 42px;
+      display: grid;
+      gap: 8px;
+      max-width: min(54vw, 360px);
+    }
+
+    .hud-chip {
+      padding: 8px 10px;
+      border: 3px solid #121619;
+      background:
+        linear-gradient(180deg, rgba(54, 61, 72, 0.88), rgba(13, 17, 21, 0.9));
+      font-size: 0.38rem;
+      line-height: 1.6;
+      color: #f9e5ba;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.65);
+    }
+
+    .hud-chip.secondary {
+      color: #d8e7f4;
+    }
+
+    .status-stack {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: grid;
+      gap: 10px;
+      justify-items: end;
+    }
+
+    .bar-wrap {
+      display: grid;
+      gap: 4px;
+      width: min(41vw, 230px);
+      max-width: 230px;
+      text-align: right;
+      font-size: 0.4rem;
+      color: #f7e7c5;
+      text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.55);
+    }
+
+    .bar-frame {
+      width: 100%;
+      height: 18px;
+      padding: 2px;
+      border: 3px solid var(--ui-black);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 40%),
+        linear-gradient(180deg, #39424b, #171b20);
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.08),
+        0 2px 0 rgba(0, 0, 0, 0.25);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 34%), var(--hp-red);
+      transition: width 140ms ease;
+    }
+
+    .bar-fill.mana {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 34%), var(--mana-blue);
+    }
+
+    .score-text,
+    .gems-text {
+      font-size: 0.44rem;
+      color: #f9f1dc;
+      text-shadow:
+        0 2px 0 rgba(0, 0, 0, 0.8),
+        0 0 8px rgba(0, 0, 0, 0.28);
+      white-space: nowrap;
+    }
+
+    .gems-text {
+      position: absolute;
+      right: 158px;
+      bottom: 8px;
+      font-family: "Segoe UI Emoji", "Press Start 2P", monospace;
+      font-size: 0.48rem;
+      padding: 2px 4px;
+      background: rgba(7, 10, 12, 0.35);
+      border: 2px solid rgba(0, 0, 0, 0.55);
+      color: #f8f1dc;
+    }
+
+    .tutorial {
+      position: absolute;
+      left: 20px;
+      top: 126px;
+      display: none;
+      max-width: min(68%, 450px);
+      color: var(--pixel-yellow);
+      text-shadow:
+        0 2px 0 rgba(0, 0, 0, 0.85),
+        0 0 9px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 500ms ease;
+    }
+
+    .tutorial.fade {
+      opacity: 0;
+    }
+
+    .tutorial-title {
+      margin-bottom: 12px;
+      font-size: 0.62rem;
+      line-height: 1.5;
+    }
+
+    .tutorial-line {
+      font-size: 0.36rem;
+      line-height: 1.8;
+    }
+
+    .banner-notice {
+      position: absolute;
+      left: 50%;
+      top: 20px;
+      transform: translateX(-50%);
+      min-width: min(76vw, 420px);
+      max-width: min(90vw, 520px);
+      padding: 10px 16px;
+      border: 3px solid #121619;
+      background:
+        linear-gradient(180deg, rgba(64, 45, 16, 0.88), rgba(18, 12, 8, 0.94));
+      color: #f8e1a4;
+      font-size: 0.44rem;
+      text-align: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 180ms ease, visibility 180ms ease;
+      pointer-events: none;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.75);
+    }
+
+    .banner-notice.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .banner-notice.ice {
+      background:
+        linear-gradient(180deg, rgba(27, 54, 77, 0.9), rgba(12, 19, 31, 0.94));
+      color: #dff5ff;
+    }
+
+    .controls {
+      position: absolute;
+      inset: 0;
+      display: none;
+      pointer-events: none;
+    }
+
+    .joystick-zone {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      width: 116px;
+      height: 116px;
+      border: 3px solid rgba(10, 11, 13, 0.85);
+      background:
+        radial-gradient(circle at 35% 35%, rgba(182, 196, 207, 0.16), transparent 48%),
+        linear-gradient(180deg, rgba(42, 51, 59, 0.78), rgba(17, 21, 26, 0.78));
+      box-shadow:
+        inset 0 0 0 3px rgba(255, 255, 255, 0.08),
+        0 8px 18px rgba(0, 0, 0, 0.28);
+      border-radius: 50%;
+      pointer-events: auto;
+      touch-action: none;
+    }
+
+    .joystick-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 42px;
+      height: 42px;
+      margin-left: -21px;
+      margin-top: -21px;
+      border: 3px solid #101317;
+      background:
+        linear-gradient(180deg, #d7dfe7 0%, #75808d 100%);
+      border-radius: 50%;
+      transform: translate(var(--stickX, 0px), var(--stickY, 0px));
+      box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.18);
+      pointer-events: none;
+    }
+
+    .action-buttons {
+      position: absolute;
+      right: 18px;
+      bottom: 20px;
+      display: grid;
+      gap: 10px;
+      justify-items: end;
+      pointer-events: auto;
+    }
+
+    .action-button {
+      width: 78px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 3px solid #111519;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.18), transparent 42%),
+        linear-gradient(180deg, rgba(125, 152, 170, 0.95), rgba(48, 62, 75, 0.98));
+      color: #fff8e5;
+      box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.22),
+        0 7px 16px rgba(0, 0, 0, 0.32);
+      font-size: 0.58rem;
+      text-align: center;
+      line-height: 1.35;
+      cursor: pointer;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .action-button.small {
+      width: 68px;
+      font-size: 0.46rem;
+    }
+
+    .action-button.light {
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.15), transparent 42%),
+        linear-gradient(180deg, rgba(90, 142, 122, 0.95), rgba(27, 58, 49, 0.98));
+    }
+
+    .action-button.heavy {
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.15), transparent 42%),
+        linear-gradient(180deg, rgba(87, 116, 156, 0.95), rgba(31, 49, 82, 0.98));
+    }
+
+    .action-button:active {
+      transform: translateY(3px);
+    }
+
+    .game-over {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(6, 8, 11, 0.72);
+      pointer-events: auto;
+    }
+
+    .game-over-panel {
+      width: min(88%, 460px);
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+      padding: 22px;
+      text-align: center;
+      border: 4px solid #23150a;
+      background:
+        linear-gradient(180deg, rgba(31, 22, 14, 0.94), rgba(13, 11, 10, 0.96));
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .game-over-title {
+      margin: 0;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(1.6rem, 4vw, 2.3rem);
+      color: #f0ab43;
+      text-shadow: 0 3px 0 #824314;
+    }
+
+    .game-over-copy,
+    .clear-copy {
+      font-size: 0.38rem;
+      line-height: 1.8;
+      color: #f1dfba;
+    }
+
+    footer {
+      width: 100%;
+      text-align: center;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.05rem;
+      color: #e8cf9c;
+      letter-spacing: 0;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 10px;
+      }
+
+      #gameShell {
+        width: min(96vw, 800px);
+      }
+
+      .screen-panel,
+      .screen-panel.wide {
+        width: min(96%, 720px);
+        padding: 16px 14px 18px;
+      }
+
+      .top-summary,
+      .chapter-grid,
+      .shop-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-chip,
+      .chapter-card,
+      .shop-card {
+        min-height: 0;
+      }
+
+      .menu-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .menu-actions .wood-button:first-child {
+        grid-column: auto;
+      }
+
+      .chapter-hud {
+        max-width: calc(100% - 220px);
+      }
+
+      .tutorial {
+        top: 130px;
+        left: 14px;
+        max-width: calc(100% - 28px);
+      }
+
+      .joystick-zone {
+        width: 102px;
+        height: 102px;
+        left: 12px;
+        bottom: 12px;
+      }
+
+      .action-button {
+        width: 68px;
+      }
+
+      .action-button.small {
+        width: 60px;
+      }
+
+      .gems-text {
+        right: 86px;
+        bottom: 10px;
+      }
+
+      .screen-footer-actions,
+      .pager-row {
+        flex-direction: column;
+      }
+
+      .wood-button.compact {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div id="gameShell">
+      <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+      <div id="menuScreen" class="screen active">
+        <div class="screen-panel">
+          <div class="title-wrap">
+            <h1 class="game-title">İNTİKAM</h1>
+            <p class="subtitle">Piksel sanatlı şövalye seferi şimdi 12 bölümlük kampanya, daha sert düşmanlar ve kalıcı gelişim ile büyüyor.</p>
+          </div>
+          <div class="top-summary">
+            <div class="summary-chip">
+              <div class="summary-label">Açık Bölüm</div>
+              <div id="menuUnlockedValue" class="summary-value">1 / 12</div>
+            </div>
+            <div class="summary-chip">
+              <div class="summary-label">Elmas</div>
+              <div id="menuGemsValue" class="summary-value">120</div>
+            </div>
+            <div class="summary-chip">
+              <div class="summary-label">Çelik Seviyesi</div>
+              <div id="menuBladeValue" class="summary-value">1</div>
+            </div>
+          </div>
+          <div class="menu-actions">
+            <button id="continueButton" class="wood-button">Kaldığın Yerden</button>
+            <button id="startButton" class="wood-button">Yeni Sefer</button>
+            <button id="chaptersButton" class="wood-button">Bölümler</button>
+            <button id="shopButton" class="wood-button">Mağaza</button>
+            <button id="settingsButton" class="wood-button">Ayarlar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="chaptersScreen" class="screen">
+        <div class="screen-panel wide">
+          <div class="title-wrap">
+            <h2 class="game-title panel-title">Bölümler</h2>
+            <p class="subtitle">Kampanya sayfalara ayrıldı. Kilidi açılan bölümlerden istediğini seçip zindanın derinine in.</p>
+          </div>
+          <div id="chapterGrid" class="chapter-grid"></div>
+          <div class="pager-row">
+            <button id="chapterPrevButton" class="wood-button compact">Önceki</button>
+            <div id="chapterPageText" class="pager-text">1 / 3</div>
+            <button id="chapterNextButton" class="wood-button compact">Sonraki</button>
+          </div>
+          <div class="screen-footer-actions">
+            <button id="chaptersBackButton" class="wood-button compact">Ana Menü</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="shopScreen" class="screen">
+        <div class="screen-panel wide">
+          <div class="title-wrap">
+            <h2 class="game-title panel-title">Mağaza</h2>
+            <p class="subtitle">Topladığın elmaslarla kalıcı yükseltmeler al. Her yükseltme tüm bölümlere yansır.</p>
+          </div>
+          <div class="top-summary">
+            <div class="summary-chip">
+              <div class="summary-label">Elmas Kasası</div>
+              <div id="shopGemsValue" class="summary-value">120</div>
+            </div>
+            <div class="summary-chip">
+              <div class="summary-label">Can Tavanı</div>
+              <div id="shopHpValue" class="summary-value">100</div>
+            </div>
+            <div class="summary-chip">
+              <div class="summary-label">Mana Tavanı</div>
+              <div id="shopManaValue" class="summary-value">100</div>
+            </div>
+          </div>
+          <div id="shopGrid" class="shop-grid"></div>
+          <div class="pager-row">
+            <button id="shopPrevButton" class="wood-button compact">Önceki</button>
+            <div id="shopPageText" class="pager-text">1 / 2</div>
+            <button id="shopNextButton" class="wood-button compact">Sonraki</button>
+          </div>
+          <div class="screen-footer-actions">
+            <button id="shopBackButton" class="wood-button compact">Ana Menü</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="settingsScreen" class="screen">
+        <div class="screen-panel">
+          <div class="title-wrap">
+            <h2 class="game-title panel-title">Ayarlar</h2>
+            <p class="subtitle">Rahatlatıcı müzik ve savaş efektleri buradan ayarlanır.</p>
+          </div>
+          <div class="settings-grid">
+            <label class="setting-row">
+              <span class="setting-topline"><span>Müzik</span><span id="musicValue">72%</span></span>
+              <input id="musicSlider" type="range" min="0" max="100" value="72" aria-label="Müzik Seviyesi">
+            </label>
+            <label class="setting-row">
+              <span class="setting-topline"><span>Ses Efektleri</span><span id="sfxValue">78%</span></span>
+              <input id="sfxSlider" type="range" min="0" max="100" value="78" aria-label="Ses Efektleri Seviyesi">
+            </label>
+          </div>
+          <div class="screen-footer-actions">
+            <button id="backButton" class="wood-button compact">Geri</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="clearScreen" class="screen">
+        <div class="screen-panel">
+          <div class="title-wrap">
+            <h2 id="clearTitle" class="game-title panel-title">Bölüm Temizlendi</h2>
+            <p id="clearCopy" class="clear-copy">Kapı açıldı ve şövalye yoluna devam etmeye hazır.</p>
+          </div>
+          <div class="top-summary">
+            <div class="summary-chip">
+              <div class="summary-label">Skor</div>
+              <div id="clearScoreValue" class="summary-value">00150</div>
+            </div>
+            <div class="summary-chip">
+              <div class="summary-label">Elmas</div>
+              <div id="clearGemsValue" class="summary-value">0</div>
+            </div>
+            <div class="summary-chip">
+              <div class="summary-label">Açılan Bölüm</div>
+              <div id="clearUnlockValue" class="summary-value">2</div>
+            </div>
+          </div>
+          <div class="screen-footer-actions">
+            <button id="nextLevelButton" class="wood-button compact">Sıradaki Bölüm</button>
+            <button id="clearShopButton" class="wood-button compact">Mağaza</button>
+            <button id="clearMenuButton" class="wood-button compact">Ana Menü</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="hud" class="hud">
+        <div class="hud-tools">
+          <button id="hudSettingsButton" class="hud-mini-button">Ayar</button>
+          <button id="hudMenuButton" class="hud-mini-button">Menü</button>
+        </div>
+        <div class="chapter-hud">
+          <div id="chapterLabel" class="hud-chip">1 / 12 • Öğretici</div>
+          <div id="objectiveText" class="hud-chip secondary">Kapı kapalı. Kalan düşmanlar: 5</div>
+        </div>
+        <div class="status-stack">
+          <div class="bar-wrap">
+            <span>Can</span>
+            <div class="bar-frame"><div id="hpFill" class="bar-fill"></div></div>
+          </div>
+          <div class="bar-wrap">
+            <span>Mana</span>
+            <div class="bar-frame"><div id="manaFill" class="bar-fill mana"></div></div>
+          </div>
+          <div id="scoreText" class="score-text">Score: 00150</div>
+        </div>
+        <div id="gemsText" class="gems-text">💎 120</div>
+      </div>
+
+      <div id="tutorial" class="tutorial"></div>
+      <div id="bannerNotice" class="banner-notice">Kapı Açıldı</div>
+
+      <div id="controls" class="controls">
+        <div id="joystick" class="joystick-zone" aria-label="Joystick">
+          <div id="joystickKnob" class="joystick-knob"></div>
+        </div>
+        <div class="action-buttons">
+          <div id="lightButton" class="action-button small light">Hafif</div>
+          <div id="heavyButton" class="action-button small heavy">Ağır</div>
+          <div id="jumpButton" class="action-button">Jump</div>
+        </div>
+      </div>
+
+      <div id="gameOver" class="game-over">
+        <div class="game-over-panel">
+          <h2 class="game-over-title">Şövalye Düştü</h2>
+          <div class="game-over-copy">Bu katman sertti. Yükseltme al, saldırı ritmini değiştir ve zindanın kalanını yeniden zorla.</div>
+          <div class="screen-footer-actions">
+            <button id="retryButton" class="wood-button compact">Bölümü Tekrarla</button>
+            <button id="gameOverShopButton" class="wood-button compact">Mağaza</button>
+            <button id="menuButton" class="wood-button compact">Ana Menü</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer>Kerem Arslan</footer>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+
+    const GAME_W = 800;
+    const GAME_H = 450;
+    const LEVEL_COUNT = 12;
+    const CHAPTER_PAGE_SIZE = 2;
+    const SHOP_PAGE_SIZE = 2;
+    const SAVE_KEY = "intikam-campaign-v6";
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const lerp = (from, to, t) => from + (to - from) * t;
+    const rnd = (min, max) => min + Math.random() * (max - min);
+    const overlap = (a, b) => (
+      a.x < b.x + b.w &&
+      a.x + a.w > b.x &&
+      a.y < b.y + b.h &&
+      a.y + a.h > b.y
+    );
+    const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+
+    const screens = {
+      menu: document.getElementById("menuScreen"),
+      chapters: document.getElementById("chaptersScreen"),
+      shop: document.getElementById("shopScreen"),
+      settings: document.getElementById("settingsScreen"),
+      clear: document.getElementById("clearScreen")
+    };
+
+    const hud = document.getElementById("hud");
+    const tutorial = document.getElementById("tutorial");
+    const controls = document.getElementById("controls");
+    const gameOver = document.getElementById("gameOver");
+    const bannerNotice = document.getElementById("bannerNotice");
+
+    const hpFill = document.getElementById("hpFill");
+    const manaFill = document.getElementById("manaFill");
+    const scoreText = document.getElementById("scoreText");
+    const gemsText = document.getElementById("gemsText");
+    const chapterLabel = document.getElementById("chapterLabel");
+    const objectiveText = document.getElementById("objectiveText");
+
+    const menuUnlockedValue = document.getElementById("menuUnlockedValue");
+    const menuGemsValue = document.getElementById("menuGemsValue");
+    const menuBladeValue = document.getElementById("menuBladeValue");
+    const shopGemsValue = document.getElementById("shopGemsValue");
+    const shopHpValue = document.getElementById("shopHpValue");
+    const shopManaValue = document.getElementById("shopManaValue");
+    const shopPageText = document.getElementById("shopPageText");
+    const chapterPageText = document.getElementById("chapterPageText");
+    const clearTitle = document.getElementById("clearTitle");
+    const clearCopy = document.getElementById("clearCopy");
+    const clearScoreValue = document.getElementById("clearScoreValue");
+    const clearGemsValue = document.getElementById("clearGemsValue");
+    const clearUnlockValue = document.getElementById("clearUnlockValue");
+
+    const musicSlider = document.getElementById("musicSlider");
+    const sfxSlider = document.getElementById("sfxSlider");
+    const musicValue = document.getElementById("musicValue");
+    const sfxValue = document.getElementById("sfxValue");
+
+    const chapterGrid = document.getElementById("chapterGrid");
+    const shopGrid = document.getElementById("shopGrid");
+    const continueButton = document.getElementById("continueButton");
+    const nextLevelButton = document.getElementById("nextLevelButton");
+    const chapterPrevButton = document.getElementById("chapterPrevButton");
+    const chapterNextButton = document.getElementById("chapterNextButton");
+    const shopPrevButton = document.getElementById("shopPrevButton");
+    const shopNextButton = document.getElementById("shopNextButton");
+
+    const joystick = document.getElementById("joystick");
+    const joystickKnob = document.getElementById("joystickKnob");
+    const lightButton = document.getElementById("lightButton");
+    const heavyButton = document.getElementById("heavyButton");
+    const jumpButton = document.getElementById("jumpButton");
+
+    function defaultProgress() {
+      return {
+        unlockedLevel: 0,
+        lastSelectedLevel: 0,
+        gems: 120,
+        hasStarted: false,
+        upgrades: {
+          vitality: 0,
+          mana: 0,
+          blade: 0,
+          magnet: 0
+        },
+        audio: {
+          music: 72,
+          sfx: 78
+        }
+      };
+    }
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) {
+          return defaultProgress();
+        }
+        const parsed = JSON.parse(raw);
+        const merged = defaultProgress();
+        merged.unlockedLevel = clamp(Number(parsed.unlockedLevel || 0), 0, LEVEL_COUNT - 1);
+        merged.lastSelectedLevel = clamp(Number(parsed.lastSelectedLevel || 0), 0, LEVEL_COUNT - 1);
+        merged.gems = Math.max(0, Number(parsed.gems || 120));
+        merged.hasStarted = Boolean(parsed.hasStarted);
+        merged.upgrades = {
+          vitality: clamp(Number(parsed.upgrades?.vitality || 0), 0, 3),
+          mana: clamp(Number(parsed.upgrades?.mana || 0), 0, 3),
+          blade: clamp(Number(parsed.upgrades?.blade || 0), 0, 3),
+          magnet: clamp(Number(parsed.upgrades?.magnet || 0), 0, 3)
+        };
+        merged.audio = {
+          music: clamp(Number(parsed.audio?.music || 72), 0, 100),
+          sfx: clamp(Number(parsed.audio?.sfx || 78), 0, 100)
+        };
+        return merged;
+      } catch (error) {
+        return defaultProgress();
+      }
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(progress));
+      } catch (error) {
+        // Ignore storage failures inside embed containers.
+      }
+    }
+
+    const progress = loadProgress();
+
+    const input = {
+      left: false,
+      right: false,
+      jumpHeld: false,
+      jumpQueued: false,
+      joystickX: 0,
+      joystickY: 0
+    };
+
+    const shopItems = [
+      {
+        key: "vitality",
+        title: "Kutsal Plaka",
+        desc: "Azami canı kalıcı olarak 20 artırır.",
+        costs: [32, 56, 84],
+        tone: "Kalkan"
+      },
+      {
+        key: "mana",
+        title: "Mavi Cevher",
+        desc: "Azami manayı kalıcı olarak 18 artırır.",
+        costs: [30, 54, 82],
+        tone: "Büyü"
+      },
+      {
+        key: "blade",
+        title: "İntikam Çeliği",
+        desc: "Hafif, ağır ve özel saldırı hasarını yükseltir.",
+        costs: [36, 64, 98],
+        tone: "Saldırı"
+      },
+      {
+        key: "magnet",
+        title: "Hazine Mıknatısı",
+        desc: "Altın ve elmas çekim alanını genişletir.",
+        costs: [26, 48, 74],
+        tone: "Toplama"
+      }
+    ];
+
+    const levelMeta = [
+      {
+        title: "1. Bölüm: Öğretici",
+        subtitle: "Mahzen Girişi",
+        intro: "Hafif ve ağır saldırı burada açılıyor.",
+        difficulty: "Kolay",
+        tutorial: [
+          "Joystick: A / D veya ekran kolu",
+          "Zıplama: Space / W veya Jump",
+          "Hafif: Z veya Hafif butonu",
+          "Ağır: X veya Ağır butonu",
+          "3 hafiften sonra ağır vur: özel saldırı"
+        ]
+      },
+      {
+        title: "2. Bölüm: Zincir Koridoru",
+        subtitle: "İlk Devriye",
+        intro: "Kolay düşmanlar artık daha hızlı baskı kuruyor.",
+        difficulty: "Kolay",
+        tutorial: [
+          "Kolay düşmanlar sayıca çoğalır",
+          "Hafif saldırı ile combo hazırla",
+          "Ağır saldırı daha çok menzil ve kırılma verir"
+        ]
+      },
+      {
+        title: "3. Bölüm: Kule Basamağı",
+        subtitle: "Duvar Tırmanışı",
+        intro: "Duvar ritmi ve platform baskısı artıyor.",
+        difficulty: "Kolay",
+        tutorial: [
+          "Yüksek duvarlarda ritmi kesme",
+          "Aynı anda iki düşman görünürse ağır saldırıyı kullan",
+          "Kristaller mağaza elması verir"
+        ]
+      },
+      {
+        title: "4. Bölüm: Kırık Köprü",
+        subtitle: "Siper Geçidi",
+        intro: "Orta düşmanlar ilk kez devreye giriyor.",
+        difficulty: "Kolay",
+        tutorial: [
+          "Orta düşmanlar kısa şarj atakları yapar",
+          "Özel hazırken ağır saldırıyı sakla",
+          "Kapı tüm düşmanlar düşünce açılır"
+        ]
+      },
+      {
+        title: "5. Bölüm: Nöbet Dumanı",
+        subtitle: "Sertleşen Hat",
+        intro: "Orta sınıf muhafızlar sahneyi tutuyor.",
+        difficulty: "Orta",
+        tutorial: [
+          "Orta düşmanlar şarj ile mesafe kapatır",
+          "Ağır saldırı ile zırhlı rakipleri daha hızlı kır"
+        ]
+      },
+      {
+        title: "6. Bölüm: Demir Avlu",
+        subtitle: "Çifte Devriye",
+        intro: "Kolay ve orta düşmanlar artık birlikte gelir.",
+        difficulty: "Orta",
+        tutorial: [
+          "Önce hızlı olanı düşür, sonra zırhlıya dön",
+          "Mana boşsa ağır saldırıyı ritimli kullan"
+        ]
+      },
+      {
+        title: "7. Bölüm: Gece Şaftı",
+        subtitle: "Yukarı Baskı",
+        intro: "Dikey kuleler ve zorlu takip başlıyor.",
+        difficulty: "Orta",
+        tutorial: [
+          "Platform üstüne çıkan düşmanı aşağı beklemeden bas",
+          "Özel saldırı kalabalıkta en değerli hâline gelir"
+        ]
+      },
+      {
+        title: "8. Bölüm: Derin Köprüler",
+        subtitle: "Dar Geçiş",
+        intro: "Dar alanlarda orta ve zor düşmanlar karışıyor.",
+        difficulty: "Orta",
+        tutorial: [
+          "Dar koridorlarda ağır saldırı nefes açar",
+          "Wall jump ile üst platforma kaçıp tekrar in"
+        ]
+      },
+      {
+        title: "9. Bölüm: Kanatlı Zindan",
+        subtitle: "Keskin Basınç",
+        intro: "Zor düşmanlar ilk kez düzenli görünür.",
+        difficulty: "Zor",
+        tutorial: [
+          "Zor düşman hafif darbeye daha az kırılır",
+          "Onlara karşı ağır ve özel daha verimlidir"
+        ]
+      },
+      {
+        title: "10. Bölüm: Kırmızı Duvar",
+        subtitle: "Son Muhafızlar",
+        intro: "Hızlı şarj ve yüksek hasar aynı anda gelir.",
+        difficulty: "Zor",
+        tutorial: [
+          "Düşman dash attığında yere yapışma",
+          "Hafif seriyle özel hazırla, sonra ağır indir"
+        ]
+      },
+      {
+        title: "11. Bölüm: Taç Eşiği",
+        subtitle: "Boss Öncesi",
+        intro: "Boss odasına girmeden önce son sert hat.",
+        difficulty: "Zor",
+        tutorial: [
+          "Burada tempo ve savunma birlikte test edilir",
+          "Tam dolu mana ile son bölüme girmek iyi fikirdir"
+        ]
+      },
+      {
+        title: "12. Bölüm: Taç Odası",
+        subtitle: "Büyük Boss",
+        intro: "Dev muhafız intikam yürüyüşünün son kapısı.",
+        difficulty: "Boss",
+        tutorial: [
+          "Boss ağır vurur ve alan saldırısı yapar",
+          "Boss canı düşünce daha agresif olur",
+          "Özel saldırıyı boş alana değil, boss üstüne sakla"
+        ]
+      }
+    ];
+
+    function paletteForAct(act) {
+      return [
+        { top: "#23333d", mid: "#18242c", bottom: "#0b0f14", moon: "rgba(236,242,247,0.08)" },
+        { top: "#20263a", mid: "#151b28", bottom: "#080b10", moon: "rgba(180,196,255,0.08)" },
+        { top: "#2b1f22", mid: "#1a1317", bottom: "#09080a", moon: "rgba(247,174,105,0.08)" }
+      ][act];
+    }
+
+    function bannerColorFor(index) {
+      const colors = ["#4a5fd2", "#8c2d36", "#5f6fd4", "#b55b2d", "#7a1d1d", "#c0731f"];
+      return colors[index % colors.length];
+    }
+
+    function makeGround(segments) {
+      return segments.map(([x, y, w, h]) => ({ x, y, w, h, kind: "ground" }));
+    }
+
+    function enemyTemplate(type, levelIndex) {
+      const scale = 1 + levelIndex * 0.09;
+      const base = {
+        easy: { w: 30, h: 50, hp: 78, speed: 1.72, damage: 15, colorA: "#6d5046", colorB: "#8b6859" },
+        medium: { w: 36, h: 60, hp: 138, speed: 1.16, damage: 20, colorA: "#5b636f", colorB: "#969aa3" },
+        hard: { w: 40, h: 66, hp: 210, speed: 0.98, damage: 26, colorA: "#6a4d41", colorB: "#a87b63" },
+        boss: { w: 78, h: 104, hp: 760, speed: 0.74, damage: 34, colorA: "#7a4e3a", colorB: "#d1a178" }
+      }[type];
+
+      if (type === "boss") {
+        return { ...base };
+      }
+
+      return {
+        ...base,
+        hp: Math.round(base.hp * scale),
+        speed: base.speed + levelIndex * 0.02,
+        damage: Math.round(base.damage + levelIndex * 1.2)
+      };
+    }
+
+    function chooseEnemyType(levelIndex, enemyIndex) {
+      if (levelIndex <= 1) {
+        return enemyIndex % 5 === 4 ? "medium" : "easy";
+      }
+      if (levelIndex <= 3) {
+        return enemyIndex % 4 === 0 ? "medium" : "easy";
+      }
+      if (levelIndex <= 6) {
+        return enemyIndex % 5 === 0 ? "hard" : enemyIndex % 2 === 0 ? "medium" : "easy";
+      }
+      if (levelIndex <= 8) {
+        return enemyIndex % 3 === 0 ? "hard" : "medium";
+      }
+      return enemyIndex % 2 === 0 ? "hard" : "medium";
+    }
+
+    function createRegularLevel(index) {
+      const meta = levelMeta[index];
+      const act = index < 4 ? 0 : index < 8 ? 1 : 2;
+      const heights = [
+        [392, 372, 392, 360],
+        [392, 360, 378, 348],
+        [392, 352, 372, 340]
+      ][act];
+      const chunkCount = 8 + index;
+      let x = 0;
+      let solids = [];
+      let torches = [];
+      let crystals = [];
+      let banners = [];
+      const chunkData = [];
+
+      for (let chunk = 0; chunk < chunkCount; chunk += 1) {
+        const width = 220 + ((chunk + index) % 3) * 28;
+        const floorY = heights[(chunk + act) % heights.length];
+        solids.push({ x, y: floorY, w: width, h: GAME_H - floorY, kind: "ground" });
+        chunkData.push({ x, w: width, floorY });
+
+        const moduleType = (chunk + index) % 4;
+        if (moduleType === 0 || moduleType === 2) {
+          const wallX = x + width - 54;
+          const wallH = 104 + ((chunk + index) % 3) * 28 + act * 12;
+          solids.push({ x: wallX, y: floorY - wallH, w: 24, h: wallH, kind: "wall" });
+          solids.push({ x: wallX - 92, y: floorY - wallH + 34, w: 124, h: 18, kind: "platform" });
+          if (moduleType === 2) {
+            solids.push({ x: wallX + 48, y: floorY - wallH + 74, w: 96, h: 18, kind: "platform" });
+          }
+          torches.push({ x: wallX + 2, y: floorY - wallH + 12 });
+        } else {
+          solids.push({ x: x + 40, y: floorY - (70 + ((chunk + index) % 2) * 22), w: 116 + (chunk % 2) * 24, h: 18, kind: "platform" });
+          if ((chunk + index) % 3 === 1) {
+            solids.push({ x: x + 148, y: floorY - (126 + act * 10), w: 88, h: 18, kind: "platform" });
+          }
+        }
+
+        if (chunk > 0 && chunk < chunkCount - 1 && chunk % 2 === 0) {
+          crystals.push({
+            x: x + width * 0.5,
+            y: floorY - 92 - ((chunk + act) % 2) * 18,
+            value: 4 + act * 2 + Math.floor(index / 2),
+            collected: false,
+            phase: rnd(0, Math.PI * 2)
+          });
+        }
+
+        if (chunk % 3 === 0) {
+          banners.push({ x: x + 36, y: 128 + ((chunk + index) % 2) * 16, color: bannerColorFor(index + chunk) });
+        }
+
+        x += width;
+      }
+
+      const finalFloor = heights[(chunkCount + act) % heights.length];
+      solids.push({ x, y: finalFloor, w: 260, h: GAME_H - finalFloor, kind: "ground" });
+      solids.push({ x: x + 60, y: finalFloor - 82, w: 116, h: 18, kind: "platform" });
+      const worldWidth = x + 260;
+      const gate = { x: worldWidth - 78, y: finalFloor - 78, w: 58, h: 78, glow: 0 };
+
+      const enemyCount = 5 + index;
+      const enemies = [];
+      for (let i = 0; i < enemyCount; i += 1) {
+        const chunk = chunkData[1 + (i % Math.max(1, chunkData.length - 2))];
+        const type = chooseEnemyType(index, i);
+        const template = enemyTemplate(type, index);
+        const localSpan = Math.max(50, chunk.w - 90);
+        const px = chunk.x + 24 + ((i * 47) % localSpan);
+        enemies.push({
+          type,
+          levelIndex: index,
+          x: px,
+          y: chunk.floorY - template.h,
+          left: chunk.x + 12,
+          right: chunk.x + chunk.w - template.w - 12
+        });
+      }
+
+      return {
+        ...meta,
+        act,
+        palette: paletteForAct(act),
+        worldWidth,
+        spawn: { x: 76, y: chunkData[0].floorY - 72 },
+        gate,
+        solids,
+        torches,
+        crystals,
+        banners,
+        enemies
+      };
+    }
+
+    function createBossLevel() {
+      const meta = levelMeta[11];
+      const solids = [
+        ...makeGround([
+          [0, 392, 360, 58],
+          [360, 372, 260, 78],
+          [620, 392, 360, 58],
+          [980, 360, 260, 90],
+          [1240, 392, 340, 58],
+          [1580, 340, 780, 110]
+        ]),
+        { x: 484, y: 218, w: 24, h: 154, kind: "wall" },
+        { x: 548, y: 254, w: 150, h: 18, kind: "platform" },
+        { x: 884, y: 176, w: 22, h: 184, kind: "wall" },
+        { x: 946, y: 216, w: 154, h: 18, kind: "platform" },
+        { x: 1412, y: 170, w: 22, h: 170, kind: "wall" },
+        { x: 1480, y: 214, w: 160, h: 18, kind: "platform" },
+        { x: 1770, y: 248, w: 170, h: 18, kind: "platform" },
+        { x: 1978, y: 198, w: 22, h: 142, kind: "wall" },
+        { x: 2040, y: 236, w: 156, h: 18, kind: "platform" }
+      ];
+
+      return {
+        ...meta,
+        act: 2,
+        palette: { top: "#341f20", mid: "#1e1418", bottom: "#09080a", moon: "rgba(247,174,105,0.08)" },
+        worldWidth: 2360,
+        spawn: { x: 88, y: 320 },
+        gate: { x: 2268, y: 262, w: 64, h: 78, glow: 0 },
+        solids,
+        torches: [
+          { x: 510, y: 178 },
+          { x: 906, y: 136 },
+          { x: 1432, y: 132 },
+          { x: 2002, y: 162 }
+        ],
+        crystals: [
+          { x: 604, y: 222, value: 10, collected: false, phase: rnd(0, Math.PI * 2) },
+          { x: 1010, y: 184, value: 12, collected: false, phase: rnd(0, Math.PI * 2) },
+          { x: 2078, y: 202, value: 16, collected: false, phase: rnd(0, Math.PI * 2) }
+        ],
+        banners: [
+          { x: 238, y: 126, color: "#7a1d1d" },
+          { x: 1246, y: 110, color: "#c0731f" },
+          { x: 2144, y: 102, color: "#7a1d1d" }
+        ],
+        enemies: [
+          { type: "hard", levelIndex: 11, x: 644, y: 392 - enemyTemplate("hard", 11).h, left: 632, right: 930 },
+          { type: "hard", levelIndex: 11, x: 1340, y: 392 - enemyTemplate("hard", 11).h, left: 1260, right: 1560 },
+          { type: "hard", levelIndex: 11, x: 1700, y: 340 - enemyTemplate("hard", 11).h, left: 1600, right: 1960 },
+          { type: "boss", levelIndex: 11, x: 1978, y: 340 - enemyTemplate("boss", 11).h, left: 1660, right: 2200 }
+        ]
+      };
+    }
+
+    const levels = Array.from({ length: LEVEL_COUNT }, (_, index) => (
+      index === LEVEL_COUNT - 1 ? createBossLevel() : createRegularLevel(index)
+    ));
+
+    const state = {
+      mode: "menu",
+      time: 0,
+      cameraX: 0,
+      score: 150,
+      levelIndex: 0,
+      tutorialTime: 0,
+      shakeTime: 0,
+      shakeStrength: 0,
+      messageBursts: [],
+      bannerTime: 0,
+      gateUnlocked: false,
+      levelFinished: false,
+      shopPage: 0,
+      chapterPage: 0,
+      settingsReturnMode: "menu"
+    };
+
+    const patterns = {};
+    let player = null;
+    let currentLevel = levels[0];
+    let solids = [];
+    let torches = [];
+    let crystals = [];
+    let banners = [];
+    let gate = null;
+    let enemies = [];
+    let loot = [];
+    let particles = [];
+    let lastTimestamp = 0;
+
+    const audio = {
+      ctx: null,
+      masterGain: null,
+      musicGain: null,
+      sfxGain: null,
+      musicVolume: progress.audio.music / 100,
+      sfxVolume: progress.audio.sfx / 100,
+      beat: 0,
+      intervalId: null
+    };
+
+    function createPatternCanvas(width, height, painter) {
+      const patternCanvas = document.createElement("canvas");
+      patternCanvas.width = width;
+      patternCanvas.height = height;
+      const patternCtx = patternCanvas.getContext("2d");
+      painter(patternCtx, width, height);
+      return ctx.createPattern(patternCanvas, "repeat");
+    }
+
+    function buildPatterns() {
+      patterns.stone = createPatternCanvas(64, 64, (p, w, h) => {
+        p.fillStyle = "#242b34";
+        p.fillRect(0, 0, w, h);
+        for (let row = 0; row < 4; row += 1) {
+          const y = row * 16;
+          const offset = row % 2 === 0 ? 0 : 8;
+          for (let x = -offset; x < w + 12; x += 16) {
+            p.fillStyle = row % 2 === 0 ? "#313a45" : "#2a313b";
+            p.fillRect(x, y, 16, 16);
+            p.fillStyle = "#414b57";
+            p.fillRect(x + 1, y + 1, 14, 3);
+            p.fillStyle = "#1a1f26";
+            p.fillRect(x, y + 14, 16, 2);
+            p.fillRect(x + 14, y, 2, 16);
+          }
+        }
+      });
+
+      patterns.platform = createPatternCanvas(48, 48, (p, w, h) => {
+        p.fillStyle = "#202832";
+        p.fillRect(0, 0, w, h);
+        for (let y = 0; y < h; y += 12) {
+          for (let x = 0; x < w; x += 12) {
+            p.fillStyle = (x + y) % 24 === 0 ? "#394350" : "#2a323d";
+            p.fillRect(x, y, 12, 12);
+            p.fillStyle = "#4e5966";
+            p.fillRect(x + 1, y + 1, 10, 2);
+            p.fillStyle = "#11161b";
+            p.fillRect(x + 10, y, 2, 12);
+            p.fillRect(x, y + 10, 12, 2);
+          }
+        }
+      });
+    }
+
+    buildPatterns();
+
+    function makeEnemy(spec) {
+      const template = enemyTemplate(spec.type, spec.levelIndex);
+      return {
+        type: spec.type,
+        levelIndex: spec.levelIndex,
+        x: spec.x,
+        y: spec.y,
+        w: template.w,
+        h: template.h,
+        vx: 0,
+        vy: 0,
+        dir: -1,
+        hp: template.hp,
+        maxHp: template.hp,
+        speed: template.speed,
+        damage: template.damage,
+        colorA: template.colorA,
+        colorB: template.colorB,
+        onGround: false,
+        flash: 0,
+        attackCooldown: rnd(0.1, 0.5),
+        specialCooldown: rnd(0.4, 1.1),
+        dashTimer: 0,
+        slamTimer: 0,
+        slamResolved: false,
+        patrolLeft: spec.left,
+        patrolRight: spec.right,
+        animTime: rnd(0, 10)
+      };
+    }
+
+    function createPlayer(spawnX, spawnY) {
+      const maxHp = 100 + progress.upgrades.vitality * 20;
+      const maxMana = 100 + progress.upgrades.mana * 18;
+      return {
+        x: spawnX,
+        y: spawnY,
+        w: 32,
+        h: 54,
+        vx: 0,
+        vy: 0,
+        dir: 1,
+        hp: maxHp,
+        mana: maxMana,
+        maxHp,
+        maxMana,
+        lightPower: 18 + progress.upgrades.blade * 5,
+        heavyPower: 36 + progress.upgrades.blade * 9,
+        specialPower: 92 + progress.upgrades.blade * 14,
+        magnet: 92 + progress.upgrades.magnet * 28,
+        onGround: false,
+        onWall: false,
+        wallDir: 0,
+        wallClimbTimer: 0,
+        invuln: 0,
+        attackTimer: 0,
+        specialTimer: 0,
+        attackType: "",
+        attackResolved: false,
+        comboHits: 0,
+        comboTimer: 0,
+        comboReadyTime: 0,
+        animTime: 0
+      };
+    }
+
+    function resetTransientState() {
+      loot = [];
+      particles = [];
+      state.cameraX = 0;
+      state.tutorialTime = 0;
+      state.messageBursts = [];
+      state.shakeTime = 0;
+      state.shakeStrength = 0;
+      state.bannerTime = 0;
+      state.levelFinished = false;
+      state.gateUnlocked = false;
+      hideGameOver();
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      Object.entries(screens).forEach(([key, element]) => {
+        element.classList.toggle("active", key === mode);
+      });
+      const gameplayVisible = mode === "playing";
+      hud.classList.toggle("active", gameplayVisible);
+      controls.classList.toggle("active", gameplayVisible);
+      if (!gameplayVisible) {
+        tutorial.classList.remove("active");
+        bannerNotice.classList.remove("active");
+      }
+      updateMenuButtons();
+    }
+
+    function refreshMetaPanels() {
+      menuUnlockedValue.textContent = `${progress.unlockedLevel + 1} / ${LEVEL_COUNT}`;
+      menuGemsValue.textContent = `${progress.gems}`;
+      menuBladeValue.textContent = `${progress.upgrades.blade + 1}`;
+      shopGemsValue.textContent = `${progress.gems}`;
+      shopHpValue.textContent = `${100 + progress.upgrades.vitality * 20}`;
+      shopManaValue.textContent = `${100 + progress.upgrades.mana * 18}`;
+      updateMenuButtons();
+    }
+
+    function updateMenuButtons() {
+      const hasProgress = progress.hasStarted || progress.unlockedLevel > 0;
+      continueButton.disabled = !hasProgress;
+      continueButton.textContent = hasProgress
+        ? `Kaldığın Yerden (${progress.lastSelectedLevel + 1}. Bölüm)`
+        : "Kaldığın Yerden";
+    }
+
+    function renderTutorial(lines, title) {
+      tutorial.innerHTML = `
+        <div class="tutorial-title">${title}</div>
+        ${lines.map((line) => `<div class="tutorial-line">${line}</div>`).join("")}
+      `;
+    }
+
+    function showTutorial() {
+      state.tutorialTime = 9.4;
+      tutorial.classList.remove("fade");
+      tutorial.classList.add("active");
+    }
+
+    function hideTutorial() {
+      tutorial.classList.add("fade");
+      setTimeout(() => {
+        if (state.mode === "playing" && state.tutorialTime <= 0) {
+          tutorial.classList.remove("active");
+        }
+      }, 480);
+    }
+
+    function announce(text, tone = "gold", duration = 2.2) {
+      bannerNotice.textContent = text;
+      bannerNotice.classList.toggle("ice", tone === "ice");
+      bannerNotice.classList.add("active");
+      state.bannerTime = duration;
+    }
+
+    function updateBanner(dt) {
+      if (state.bannerTime <= 0) {
+        return;
+      }
+      state.bannerTime -= dt / 60;
+      if (state.bannerTime <= 0) {
+        bannerNotice.classList.remove("active");
+      }
+    }
+
+    function showGameOver() {
+      gameOver.classList.add("active");
+      gameOver.style.display = "grid";
+    }
+
+    function hideGameOver() {
+      gameOver.classList.remove("active");
+      gameOver.style.display = "none";
+    }
+
+    function bossEnemy() {
+      return enemies.find((enemy) => enemy.type === "boss") || null;
+    }
+
+    function updateObjective() {
+      const boss = bossEnemy();
+      if (boss && !state.gateUnlocked) {
+        objectiveText.textContent = `Boss Canı: %${Math.max(0, Math.round((boss.hp / boss.maxHp) * 100))}`;
+        return;
+      }
+      if (state.gateUnlocked) {
+        objectiveText.textContent = "Kapı açıldı. Işıyan geçide ulaş.";
+        return;
+      }
+      if (player.comboReadyTime > 0) {
+        objectiveText.textContent = `Özel hazır. Ağır saldırı ile indir. Kalan düşman: ${enemies.length}`;
+        return;
+      }
+      objectiveText.textContent = `Kapı kapalı. Kalan düşmanlar: ${enemies.length}`;
+    }
+
+    function updateHud() {
+      if (!player) {
+        return;
+      }
+      hpFill.style.width = `${(player.hp / player.maxHp) * 100}%`;
+      manaFill.style.width = `${(player.mana / player.maxMana) * 100}%`;
+      scoreText.textContent = `Score: ${String(state.score).padStart(5, "0")}`;
+      gemsText.textContent = `💎 ${progress.gems}`;
+      chapterLabel.textContent = `${state.levelIndex + 1} / ${LEVEL_COUNT} • ${currentLevel.subtitle}`;
+      updateObjective();
+      refreshMetaPanels();
+    }
+
+    async function ensureAudio() {
+      if (audio.ctx) {
+        if (audio.ctx.state === "suspended") {
+          await audio.ctx.resume();
+        }
+        return;
+      }
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        return;
+      }
+
+      audio.ctx = new AudioContextClass();
+      audio.masterGain = audio.ctx.createGain();
+      audio.musicGain = audio.ctx.createGain();
+      audio.sfxGain = audio.ctx.createGain();
+      audio.masterGain.gain.value = 0.9;
+      audio.musicGain.gain.value = audio.musicVolume * 0.34;
+      audio.sfxGain.gain.value = audio.sfxVolume * 0.46;
+      audio.musicGain.connect(audio.masterGain);
+      audio.sfxGain.connect(audio.masterGain);
+      audio.masterGain.connect(audio.ctx.destination);
+      startMusicLoop();
+    }
+
+    function setMusicVolume(value) {
+      audio.musicVolume = value;
+      progress.audio.music = Math.round(value * 100);
+      if (audio.musicGain) {
+        audio.musicGain.gain.setValueAtTime(value * 0.34, audio.ctx.currentTime);
+      }
+      saveProgress();
+    }
+
+    function setSfxVolume(value) {
+      audio.sfxVolume = value;
+      progress.audio.sfx = Math.round(value * 100);
+      if (audio.sfxGain) {
+        audio.sfxGain.gain.setValueAtTime(value * 0.46, audio.ctx.currentTime);
+      }
+      saveProgress();
+    }
+
+    function playEnvelopeTone(frequency, type, duration, volume, when = 0, target = "sfx", attack = 0.02, release = 0.12) {
+      if (!audio.ctx) {
+        return;
+      }
+      const osc = audio.ctx.createOscillator();
+      const gain = audio.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(frequency, audio.ctx.currentTime + when);
+      gain.gain.setValueAtTime(0.0001, audio.ctx.currentTime + when);
+      gain.gain.exponentialRampToValueAtTime(volume, audio.ctx.currentTime + when + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audio.ctx.currentTime + when + Math.max(attack + 0.02, duration - release));
+      osc.connect(gain);
+      gain.connect(target === "music" ? audio.musicGain : audio.sfxGain);
+      osc.start(audio.ctx.currentTime + when);
+      osc.stop(audio.ctx.currentTime + when + duration + 0.04);
+    }
+
+    function currentMusicProfile() {
+      if (state.mode !== "playing") {
+        return {
+          root: 196,
+          chords: [
+            [1, 5 / 4, 3 / 2],
+            [9 / 8, 4 / 3, 5 / 3],
+            [1, 6 / 5, 3 / 2],
+            [3 / 4, 5 / 4, 3 / 2]
+          ],
+          melody: [0, 2, 4, 7, 9]
+        };
+      }
+
+      const act = currentLevel.act;
+      if (act === 0) {
+        return {
+          root: 185,
+          chords: [
+            [1, 5 / 4, 3 / 2],
+            [1, 4 / 3, 5 / 3],
+            [9 / 8, 5 / 4, 3 / 2],
+            [3 / 4, 1, 3 / 2]
+          ],
+          melody: [0, 2, 4, 7, 9]
+        };
+      }
+      if (act === 1) {
+        return {
+          root: 165,
+          chords: [
+            [1, 6 / 5, 3 / 2],
+            [1, 4 / 3, 8 / 5],
+            [9 / 8, 4 / 3, 5 / 3],
+            [3 / 4, 6 / 5, 3 / 2]
+          ],
+          melody: [0, 2, 3, 7, 8]
+        };
+      }
+      return {
+        root: bossEnemy() ? 138 : 152,
+        chords: [
+          [1, 6 / 5, 3 / 2],
+          [1, 4 / 3, 16 / 9],
+          [9 / 8, 6 / 5, 3 / 2],
+          [3 / 4, 1, 3 / 2]
+        ],
+        melody: [0, 3, 5, 7, 10]
+      };
+    }
+
+    function scheduleAmbientBar(profile) {
+      const chord = profile.chords[audio.beat % profile.chords.length];
+      const baseWhen = 0;
+      playEnvelopeTone(profile.root / 2, "triangle", 1.55, 0.028, baseWhen, "music", 0.08, 0.26);
+      chord.forEach((ratio, index) => {
+        playEnvelopeTone(profile.root * ratio, "sine", 1.42, 0.022, baseWhen + index * 0.02, "music", 0.09, 0.24);
+      });
+      const steps = [0.18, 0.46, 0.78, 1.06];
+      steps.forEach((offset, stepIndex) => {
+        const note = profile.melody[(audio.beat + stepIndex) % profile.melody.length];
+        const freq = profile.root * 2 * Math.pow(2, note / 12);
+        playEnvelopeTone(freq, "triangle", 0.28, 0.014, offset, "music", 0.03, 0.12);
+      });
+    }
+
+    function startMusicLoop() {
+      if (audio.intervalId || !audio.ctx) {
+        return;
+      }
+      scheduleAmbientBar(currentMusicProfile());
+      audio.intervalId = setInterval(() => {
+        scheduleAmbientBar(currentMusicProfile());
+        audio.beat += 1;
+      }, 1600);
+    }
+
+    function playMenuClick() {
+      playEnvelopeTone(330, "square", 0.06, 0.08);
+      playEnvelopeTone(440, "triangle", 0.1, 0.05, 0.03);
+    }
+
+    function playLightSound() {
+      playEnvelopeTone(520, "square", 0.08, 0.06);
+      playEnvelopeTone(760, "triangle", 0.08, 0.04, 0.02);
+    }
+
+    function playHeavySound() {
+      playEnvelopeTone(280, "sawtooth", 0.14, 0.07);
+      playEnvelopeTone(420, "square", 0.11, 0.05, 0.04);
+    }
+
+    function playJumpSound(scale = 1) {
+      playEnvelopeTone(260 * scale, "square", 0.08, 0.08);
+      playEnvelopeTone(420 * scale, "triangle", 0.1, 0.05, 0.04);
+    }
+
+    function playImpactSound() {
+      playEnvelopeTone(150, "square", 0.09, 0.06);
+      playEnvelopeTone(110, "triangle", 0.12, 0.04, 0.03);
+    }
+
+    function playSpecialSound() {
+      playEnvelopeTone(280, "triangle", 0.16, 0.08);
+      playEnvelopeTone(560, "sawtooth", 0.24, 0.05, 0.04);
+      playEnvelopeTone(840, "square", 0.28, 0.04, 0.08);
+    }
+
+    function playPickupSound(type) {
+      if (type === "gem") {
+        playEnvelopeTone(720, "triangle", 0.08, 0.05);
+        playEnvelopeTone(1080, "square", 0.1, 0.04, 0.03);
+      } else {
+        playEnvelopeTone(540, "square", 0.05, 0.04);
+      }
+    }
+
+    function beginLevel(index, resetScore) {
+      currentLevel = levels[index];
+      state.levelIndex = index;
+      if (resetScore) {
+        state.score = 150;
+      }
+
+      progress.lastSelectedLevel = index;
+      progress.hasStarted = true;
+      saveProgress();
+
+      solids = currentLevel.solids.map((solid) => ({ ...solid }));
+      torches = currentLevel.torches.map((torch) => ({ ...torch }));
+      crystals = currentLevel.crystals.map((crystal) => ({ ...crystal, collected: false, phase: rnd(0, Math.PI * 2) }));
+      banners = currentLevel.banners.map((banner) => ({ ...banner }));
+      gate = { ...currentLevel.gate };
+      enemies = currentLevel.enemies.map(makeEnemy);
+      player = createPlayer(currentLevel.spawn.x, currentLevel.spawn.y);
+      renderTutorial(currentLevel.tutorial, currentLevel.title);
+      resetTransientState();
+      showTutorial();
+      announce(currentLevel.title, "gold", 2.8);
+      setMode("playing");
+      updateHud();
+    }
+
+    function startNewCampaign(levelIndex = 0) {
+      beginLevel(levelIndex, true);
+    }
+
+    function continueCampaign() {
+      beginLevel(clamp(progress.lastSelectedLevel || 0, 0, progress.unlockedLevel), true);
+    }
+
+    function openSettings(fromMode = state.mode) {
+      hideGameOver();
+      state.settingsReturnMode = fromMode === "playing" ? "playing" : "menu";
+      setMode("settings");
+    }
+
+    function openChapters() {
+      hideGameOver();
+      renderChapterCards();
+      setMode("chapters");
+    }
+
+    function openShop() {
+      hideGameOver();
+      state.shopPage = 0;
+      renderShopCards();
+      setMode("shop");
+    }
+
+    function returnToMenu() {
+      refreshMetaPanels();
+      setMode("menu");
+      hideGameOver();
+    }
+
+    function backFromSettings() {
+      if (state.settingsReturnMode === "playing") {
+        setMode("playing");
+      } else {
+        returnToMenu();
+      }
+    }
+
+    function renderChapterCards() {
+      const perPage = CHAPTER_PAGE_SIZE;
+      const totalPages = Math.ceil(levels.length / perPage);
+      state.chapterPage = clamp(state.chapterPage, 0, totalPages - 1);
+      const visible = levels.slice(state.chapterPage * perPage, state.chapterPage * perPage + perPage);
+      chapterGrid.innerHTML = visible.map((level, localIndex) => {
+        const index = state.chapterPage * perPage + localIndex;
+        const unlocked = index <= progress.unlockedLevel;
+        const enemiesCount = level.enemies.filter((enemy) => enemy.type !== "boss").length + (level.enemies.some((enemy) => enemy.type === "boss") ? 1 : 0);
+        return `
+          <div class="chapter-card ${unlocked ? "" : "locked"}">
+            <div class="chapter-name">${level.title}</div>
+            <div class="chapter-copy">${level.subtitle}<br>${level.intro}</div>
+            <div class="chapter-meta">
+              <span class="meta-pill">${level.difficulty}</span>
+              <span class="meta-pill">${enemiesCount} Düşman</span>
+            </div>
+            <div class="chapter-copy">Açık olan bölümler tekrar oynanabilir. Son bölümde büyük boss bekler.</div>
+            <button class="wood-button" data-level="${index}" ${unlocked ? "" : "disabled"}>${unlocked ? "Bu Bölüme Git" : "Kilitli"}</button>
+          </div>
+        `;
+      }).join("");
+      chapterPageText.textContent = `${state.chapterPage + 1} / ${totalPages}`;
+      chapterPrevButton.disabled = state.chapterPage === 0;
+      chapterNextButton.disabled = state.chapterPage === totalPages - 1;
+    }
+
+    function renderShopCards() {
+      refreshMetaPanels();
+      const perPage = SHOP_PAGE_SIZE;
+      const totalPages = Math.ceil(shopItems.length / perPage);
+      state.shopPage = clamp(state.shopPage, 0, totalPages - 1);
+      const visible = shopItems.slice(state.shopPage * perPage, state.shopPage * perPage + perPage);
+      shopGrid.innerHTML = visible.map((item) => {
+        const level = progress.upgrades[item.key];
+        const maxed = level >= item.costs.length;
+        const costText = maxed ? "MAX" : `${item.costs[level]} 💎`;
+        return `
+          <div class="shop-card">
+            <div class="shop-title">${item.title}</div>
+            <div class="shop-copy">${item.desc}</div>
+            <div class="shop-meta">
+              <span class="meta-pill">${item.tone}</span>
+              <span class="meta-pill">Seviye ${level + 1}</span>
+            </div>
+            <div class="shop-level">${maxed ? "Tüm yükseltmeler tamamlandı." : `Sonraki yükseltme: ${costText}`}</div>
+            <button class="wood-button" data-upgrade="${item.key}" ${maxed ? "disabled" : ""}>${maxed ? "Tamamlandı" : "Satın Al"}</button>
+          </div>
+        `;
+      }).join("");
+      shopPageText.textContent = `${state.shopPage + 1} / ${totalPages}`;
+      shopPrevButton.disabled = state.shopPage === 0;
+      shopNextButton.disabled = state.shopPage === totalPages - 1;
+    }
+
+    function buyUpgrade(key) {
+      const item = shopItems.find((entry) => entry.key === key);
+      if (!item) {
+        return;
+      }
+      const level = progress.upgrades[key];
+      if (level >= item.costs.length) {
+        return;
+      }
+      const cost = item.costs[level];
+      if (progress.gems < cost) {
+        announce("Yeterli elmas yok", "ice", 1.8);
+        return;
+      }
+      progress.gems -= cost;
+      progress.upgrades[key] += 1;
+      saveProgress();
+      renderShopCards();
+      refreshMetaPanels();
+      playImpactSound();
+      announce(`${item.title} güçlendi`, "gold", 2);
+    }
+
+    function queueJump() {
+      input.jumpQueued = true;
+      input.jumpHeld = true;
+    }
+
+    function releaseJump() {
+      input.jumpHeld = false;
+    }
+
+    function triggerLightAttack() {
+      if (state.mode !== "playing" || !player || player.hp <= 0) {
+        return;
+      }
+      if (player.attackTimer > 0.08) {
+        return;
+      }
+      player.comboHits = player.comboTimer > 0 ? player.comboHits + 1 : 1;
+      player.comboTimer = 0.58;
+      if (player.comboHits >= 3) {
+        player.comboHits = 3;
+        player.comboReadyTime = 3.2;
+        announce("Özel hazır", "ice", 1.4);
+      }
+      player.attackTimer = 0.18;
+      player.attackType = "light";
+      player.attackResolved = false;
+      playLightSound();
+      createSlashArc(player.x + player.w / 2 + player.dir * 20, player.y + 24, player.dir, false, "#f7f5f0");
+    }
+
+    function triggerHeavyAttack() {
+      if (state.mode !== "playing" || !player || player.hp <= 0) {
+        return;
+      }
+      if (player.attackTimer > 0.12) {
+        return;
+      }
+      if (player.comboReadyTime > 0 && player.mana >= 24) {
+        triggerSpecialAttack();
+        return;
+      }
+      player.attackTimer = 0.36;
+      player.attackType = "heavy";
+      player.attackResolved = false;
+      playHeavySound();
+      createSlashArc(player.x + player.w / 2 + player.dir * 28, player.y + 20, player.dir, false, "#d9ebff");
+    }
+
+    function triggerSpecialAttack() {
+      player.attackTimer = 0.56;
+      player.specialTimer = 0.56;
+      player.attackType = "special";
+      player.attackResolved = true;
+      player.comboReadyTime = 0;
+      player.comboHits = 0;
+      player.comboTimer = 0;
+      player.mana = clamp(player.mana - 24, 0, player.maxMana);
+      state.shakeTime = 0.34;
+      state.shakeStrength = 13;
+      playSpecialSound();
+      createSlashArc(player.x + player.w / 2 + player.dir * 30, player.y + 22, player.dir, true, "#8ed9ff");
+      createSpecialBurst(player.x + player.w / 2, player.y + 26);
+
+      for (const enemy of [...enemies]) {
+        const enemyCenterX = enemy.x + enemy.w / 2;
+        const enemyCenterY = enemy.y + enemy.h / 2;
+        if (dist(player.x + player.w / 2, player.y + player.h / 2, enemyCenterX, enemyCenterY) < 126) {
+          damageEnemy(enemy, player.specialPower, "special");
+        }
+      }
+
+      updateHud();
+    }
+
+    function damageEnemy(enemy, amount, source) {
+      if (!enemy) {
+        return;
+      }
+      let damage = amount;
+      if (enemy.type === "hard" && source === "light") {
+        damage *= 0.72;
+      }
+      if (enemy.type === "boss" && source === "light") {
+        damage *= 0.55;
+      }
+      if (enemy.type === "boss" && source === "special") {
+        damage *= 0.92;
+      }
+
+      enemy.hp -= Math.round(damage);
+      enemy.flash = 0.18;
+      enemy.vx = player.dir * (enemy.type === "boss" ? 1.1 : enemy.type === "hard" ? 1.8 : 2.6);
+      enemy.vy = enemy.type === "boss" ? -1.5 : -2.4;
+      createSparkBurst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, source === "special" ? "#f5d95f" : "#d8ebff");
+
+      if (enemy.hp <= 0) {
+        enemies = enemies.filter((entry) => entry !== enemy);
+        createDefeatCloud(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+        if (enemy.type === "easy") {
+          dropLoot(enemy.x + enemy.w / 2, enemy.y + 12, "gold", 4, 18);
+        } else if (enemy.type === "medium") {
+          dropLoot(enemy.x + enemy.w / 2, enemy.y + 10, "gold", 6, 18);
+          dropLoot(enemy.x + enemy.w / 2 + 6, enemy.y + 4, "gem", 1, 4);
+        } else if (enemy.type === "hard") {
+          dropLoot(enemy.x + enemy.w / 2, enemy.y + 8, "gold", 8, 20);
+          dropLoot(enemy.x + enemy.w / 2 + 10, enemy.y + 4, "gem", 2, 5);
+        } else {
+          dropLoot(enemy.x + enemy.w / 2, enemy.y + 8, "gold", 14, 24);
+          dropLoot(enemy.x + enemy.w / 2, enemy.y + 4, "gem", 4, 7);
+        }
+        state.score += enemy.type === "boss" ? 260 : enemy.type === "hard" ? 80 : enemy.type === "medium" ? 45 : 24;
+        pushMessage(enemy.x, enemy.y - 16, enemy.type === "boss" ? "+260" : enemy.type === "hard" ? "+80" : enemy.type === "medium" ? "+45" : "+24", source === "special" ? "#ffe47e" : "#ffffff");
+        playImpactSound();
+        if (!state.gateUnlocked && enemies.length === 0) {
+          unlockGate();
+        }
+        updateHud();
+      } else {
+        playImpactSound();
+      }
+    }
+
+    function unlockGate() {
+      state.gateUnlocked = true;
+      gate.glow = 1;
+      announce("Kapı Açıldı", "ice", 2.6);
+      createSpecialBurst(gate.x + gate.w / 2, gate.y + gate.h / 2);
+      updateHud();
+    }
+
+    function hurtPlayer(amount, fromX) {
+      if (player.invuln > 0 || player.hp <= 0) {
+        return;
+      }
+      player.hp = clamp(player.hp - amount, 0, player.maxHp);
+      player.invuln = 0.82;
+      player.vx = fromX < player.x ? 3.4 : -3.4;
+      player.vy = -4;
+      state.shakeTime = 0.14;
+      state.shakeStrength = 7;
+      createSparkBurst(player.x + player.w / 2, player.y + 22, "#ff7b7b");
+      updateHud();
+      if (player.hp <= 0) {
+        player.attackTimer = 0;
+        player.specialTimer = 0;
+        showGameOver();
+      }
+    }
+
+    function completeLevel() {
+      if (state.levelFinished) {
+        return;
+      }
+      state.levelFinished = true;
+      const nextIndex = state.levelIndex + 1;
+      progress.unlockedLevel = Math.max(progress.unlockedLevel, Math.min(nextIndex, LEVEL_COUNT - 1));
+      progress.lastSelectedLevel = Math.min(nextIndex, LEVEL_COUNT - 1);
+      saveProgress();
+      refreshMetaPanels();
+
+      const finalChapter = state.levelIndex === LEVEL_COUNT - 1;
+      clearTitle.textContent = finalChapter ? "İNTİKAM Tamamlandı" : `${currentLevel.title} Temizlendi`;
+      clearCopy.textContent = finalChapter
+        ? "Büyük boss düştü. Kampanya tamamlandı ve bütün bölümler tekrar oynanabilir durumda."
+        : `${levels[nextIndex].title} artık açık. Mağazaya uğrayıp sonraki bölüme daha sert dönebilirsin.`;
+      clearScoreValue.textContent = String(state.score).padStart(5, "0");
+      clearGemsValue.textContent = `${progress.gems}`;
+      clearUnlockValue.textContent = finalChapter ? "Hepsi" : `${nextIndex + 1}. Bölüm`;
+      nextLevelButton.disabled = finalChapter;
+      nextLevelButton.textContent = finalChapter ? "Kampanya Bitti" : "Sıradaki Bölüm";
+      setMode("clear");
+    }
+
+    function dropLoot(x, y, type, count, value) {
+      for (let i = 0; i < count; i += 1) {
+        loot.push({
+          type,
+          x: x + rnd(-8, 8),
+          y: y + rnd(-2, 6),
+          vx: rnd(-2.1, 2.1),
+          vy: rnd(-4.3, -2.8),
+          value,
+          life: 8,
+          phase: rnd(0, Math.PI * 2)
+        });
+      }
+    }
+
+    function pushMessage(x, y, text, color) {
+      state.messageBursts.push({ x, y, text, color, life: 0.9 });
+    }
+
+    function createDust(x, y, tint = "#c2ced7") {
+      for (let i = 0; i < 5; i += 1) {
+        particles.push({
+          x,
+          y,
+          vx: rnd(-1.1, 1.1),
+          vy: rnd(-1.2, -0.2),
+          size: rnd(2, 4),
+          life: rnd(0.28, 0.48),
+          color: tint,
+          gravity: 0.06
+        });
+      }
+    }
+
+    function createSparkBurst(x, y, color) {
+      for (let i = 0; i < 12; i += 1) {
+        particles.push({
+          x,
+          y,
+          vx: rnd(-3.2, 3.2),
+          vy: rnd(-2.6, 2.2),
+          size: rnd(2, 5),
+          life: rnd(0.18, 0.42),
+          color,
+          gravity: 0.04
+        });
+      }
+    }
+
+    function createSlashArc(x, y, dir, special, color) {
+      for (let i = 0; i < (special ? 20 : 10); i += 1) {
+        particles.push({
+          x: x + dir * rnd(4, special ? 26 : 18),
+          y: y + rnd(-18, 18),
+          vx: dir * rnd(0.8, special ? 5.2 : 4.1),
+          vy: rnd(-1.8, 1.8),
+          size: special ? rnd(4, 7) : rnd(3, 5),
+          life: special ? rnd(0.24, 0.56) : rnd(0.12, 0.22),
+          color,
+          gravity: 0.01
+        });
+      }
+    }
+
+    function createSpecialBurst(x, y) {
+      for (let i = 0; i < 24; i += 1) {
+        const angle = (Math.PI * 2 * i) / 24;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * rnd(2, 4.5),
+          vy: Math.sin(angle) * rnd(2, 4.5),
+          size: rnd(3, 6),
+          life: rnd(0.3, 0.5),
+          color: i % 2 === 0 ? "#78d8ff" : "#f9d456",
+          gravity: 0.005
+        });
+      }
+    }
+
+    function createDefeatCloud(x, y) {
+      for (let i = 0; i < 20; i += 1) {
+        particles.push({
+          x,
+          y,
+          vx: rnd(-2.6, 2.6),
+          vy: rnd(-2.2, 1.8),
+          size: rnd(4, 8),
+          life: rnd(0.22, 0.62),
+          color: i % 3 === 0 ? "#dbbf72" : "#576270",
+          gravity: 0.03
+        });
+      }
+    }
+
+    function moveWithCollisions(entity, dt) {
+      entity.x += entity.vx * dt;
+      for (const solid of solids) {
+        if (!overlap(entity, solid)) {
+          continue;
+        }
+        if (entity.vx > 0) {
+          entity.x = solid.x - entity.w;
+        } else if (entity.vx < 0) {
+          entity.x = solid.x + solid.w;
+        }
+        entity.vx = 0;
+      }
+
+      entity.y += entity.vy * dt;
+      entity.onGround = false;
+      for (const solid of solids) {
+        if (!overlap(entity, solid)) {
+          continue;
+        }
+        if (entity.vy > 0) {
+          entity.y = solid.y - entity.h;
+          entity.vy = 0;
+          entity.onGround = true;
+        } else if (entity.vy < 0) {
+          entity.y = solid.y + solid.h;
+          entity.vy = 0;
+        }
+      }
+
+      const leftProbe = { x: entity.x - 2, y: entity.y + 6, w: 2, h: entity.h - 12 };
+      const rightProbe = { x: entity.x + entity.w, y: entity.y + 6, w: 2, h: entity.h - 12 };
+      entity.wallDir = 0;
+      for (const solid of solids) {
+        if (overlap(leftProbe, solid)) {
+          entity.wallDir = -1;
+          break;
+        }
+        if (overlap(rightProbe, solid)) {
+          entity.wallDir = 1;
+          break;
+        }
+      }
+      entity.onWall = entity.wallDir !== 0 && !entity.onGround;
+    }
+
+    function updatePlayer(dt) {
+      if (player.hp <= 0) {
+        player.vy = Math.min(player.vy + 0.4 * dt, 8);
+        moveWithCollisions(player, dt);
+        return;
+      }
+
+      player.animTime += dt;
+      player.invuln = Math.max(0, player.invuln - dt / 60);
+      player.attackTimer = Math.max(0, player.attackTimer - dt / 60);
+      player.specialTimer = Math.max(0, player.specialTimer - dt / 60);
+      player.comboTimer = Math.max(0, player.comboTimer - dt / 60);
+      player.comboReadyTime = Math.max(0, player.comboReadyTime - dt / 60);
+      player.wallClimbTimer = Math.max(0, player.wallClimbTimer - dt / 60);
+      if (player.comboTimer <= 0 && player.comboReadyTime <= 0) {
+        player.comboHits = 0;
+      }
+
+      const keyX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+      const moveX = clamp(keyX + input.joystickX, -1, 1);
+      const targetVx = moveX * (player.specialTimer > 0 ? 2.45 : 3.2);
+      const accel = player.onGround ? 0.24 : 0.16;
+      player.vx = lerp(player.vx, targetVx, accel);
+      if (Math.abs(moveX) < 0.06 && player.onGround) {
+        player.vx *= 0.82;
+      }
+      if (Math.abs(moveX) > 0.1) {
+        player.dir = moveX > 0 ? 1 : -1;
+      }
+
+      const towardWall = (moveX < -0.2 && player.wallDir === -1) || (moveX > 0.2 && player.wallDir === 1);
+      if (input.jumpQueued) {
+        if (player.onGround) {
+          player.vy = -7.7;
+          playJumpSound();
+          createDust(player.x + player.w / 2, player.y + player.h, "#d9dde2");
+        } else if (player.onWall) {
+          player.vy = -7.2;
+          player.vx = -player.wallDir * 4.2;
+          player.dir = -player.wallDir;
+          playJumpSound(1.08);
+          createDust(player.x + player.w / 2, player.y + player.h / 2, "#a9c4e4");
+        }
+        input.jumpQueued = false;
+      }
+
+      if (player.onWall && towardWall && input.jumpHeld && player.wallClimbTimer <= 0) {
+        player.vy = -6.35;
+        player.vx = -player.wallDir * 2.2;
+        player.wallClimbTimer = 0.16;
+        playJumpSound(0.9);
+        createDust(player.x + player.w / 2, player.y + player.h / 2, "#9fb6d1");
+      }
+
+      if (player.attackTimer > 0 && !player.attackResolved) {
+        if (player.attackType === "light" && player.attackTimer < 0.11) {
+          resolvePlayerAttack(36, 34, player.lightPower, "light");
+        } else if (player.attackType === "heavy" && player.attackTimer < 0.18) {
+          resolvePlayerAttack(52, 42, player.heavyPower, "heavy");
+        }
+      }
+
+      player.mana = clamp(player.mana + 0.065 * dt, 0, player.maxMana);
+      player.vy = Math.min(player.vy + 0.42 * dt, 8.6);
+      if (player.onWall && towardWall && player.vy > 1.6) {
+        player.vy = 1.6;
+      }
+      moveWithCollisions(player, dt);
+      player.x = clamp(player.x, 0, currentLevel.worldWidth - player.w);
+
+      if (state.gateUnlocked && overlap(player, gate)) {
+        completeLevel();
+      }
+      updateHud();
+    }
+
+    function resolvePlayerAttack(rangeX, rangeY, damage, kind) {
+      const hitBox = {
+        x: player.dir > 0 ? player.x + player.w - 2 : player.x - rangeX,
+        y: player.y + 6,
+        w: rangeX,
+        h: rangeY
+      };
+      for (const enemy of [...enemies]) {
+        if (overlap(hitBox, enemy)) {
+          damageEnemy(enemy, damage, kind);
+        }
+      }
+      player.attackResolved = true;
+    }
+
+    function updateStandardEnemy(enemy, dt) {
+      enemy.animTime += dt;
+      enemy.flash = Math.max(0, enemy.flash - dt / 60);
+      enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt / 60);
+      enemy.specialCooldown = Math.max(0, enemy.specialCooldown - dt / 60);
+      enemy.dashTimer = Math.max(0, enemy.dashTimer - dt / 60);
+
+      const enemyCenter = enemy.x + enemy.w / 2;
+      const playerCenter = player.x + player.w / 2;
+      const dx = playerCenter - enemyCenter;
+      const seesPlayer = Math.abs(dx) < (enemy.type === "hard" ? 260 : enemy.type === "medium" ? 220 : 190) && Math.abs(player.y - enemy.y) < 110;
+      let target = enemy.dir * enemy.speed;
+
+      if (seesPlayer) {
+        enemy.dir = dx > 0 ? 1 : -1;
+        target = enemy.dir * enemy.speed;
+        if (enemy.type === "easy" && enemy.specialCooldown <= 0 && Math.abs(dx) < 160) {
+          enemy.dashTimer = 0.18;
+          enemy.specialCooldown = 1.2;
+        }
+        if (enemy.type === "medium" && enemy.specialCooldown <= 0 && Math.abs(dx) < 180) {
+          enemy.dashTimer = 0.28;
+          enemy.specialCooldown = 1.6;
+        }
+        if (enemy.type === "hard" && enemy.specialCooldown <= 0 && Math.abs(dx) < 210) {
+          enemy.dashTimer = 0.36;
+          enemy.specialCooldown = 1.8;
+          enemy.vy = Math.min(enemy.vy, -2.8);
+        }
+      } else if (enemy.x <= enemy.patrolLeft + 4) {
+        enemy.dir = 1;
+      } else if (enemy.x + enemy.w >= enemy.patrolRight - 4) {
+        enemy.dir = -1;
+      }
+
+      if (enemy.dashTimer > 0) {
+        const dashSpeed = enemy.type === "hard" ? 4.8 : enemy.type === "medium" ? 3.8 : 2.9;
+        target = enemy.dir * dashSpeed;
+      }
+
+      enemy.vx = lerp(enemy.vx, target, enemy.onGround ? 0.16 : 0.08);
+      enemy.vy = Math.min(enemy.vy + 0.38 * dt, 8);
+
+      if (enemy.type === "easy" && seesPlayer && player.y + 8 < enemy.y && enemy.onGround && enemy.specialCooldown < 0.7) {
+        enemy.vy = -5.6;
+      }
+
+      moveWithCollisions(enemy, dt);
+      if (player.hp > 0 && overlap(enemy, player) && enemy.attackCooldown <= 0) {
+        hurtPlayer(enemy.damage, enemy.x);
+        enemy.attackCooldown = enemy.type === "hard" ? 1.05 : enemy.type === "medium" ? 0.95 : 0.85;
+      }
+    }
+
+    function updateBoss(enemy, dt) {
+      enemy.animTime += dt;
+      enemy.flash = Math.max(0, enemy.flash - dt / 60);
+      enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt / 60);
+      enemy.specialCooldown = Math.max(0, enemy.specialCooldown - dt / 60);
+      enemy.dashTimer = Math.max(0, enemy.dashTimer - dt / 60);
+      enemy.slamTimer = Math.max(0, enemy.slamTimer - dt / 60);
+
+      const bossPhase = enemy.hp / enemy.maxHp;
+      const bossSpeed = bossPhase < 0.35 ? 1.18 : bossPhase < 0.7 ? 1.0 : 0.84;
+      const enemyCenter = enemy.x + enemy.w / 2;
+      const playerCenter = player.x + player.w / 2;
+      const dx = playerCenter - enemyCenter;
+      enemy.dir = dx > 0 ? 1 : -1;
+
+      if (enemy.slamTimer > 0) {
+        enemy.vx = lerp(enemy.vx, 0, 0.14);
+        if (enemy.slamTimer > 0.28) {
+          enemy.vy = -5.6;
+        }
+        if (enemy.slamTimer < 0.22 && !enemy.slamResolved) {
+          enemy.slamResolved = true;
+          state.shakeTime = 0.24;
+          state.shakeStrength = 10;
+          createSpecialBurst(enemy.x + enemy.w / 2, enemy.y + enemy.h - 10);
+          if (dist(enemyCenter, enemy.y + enemy.h, player.x + player.w / 2, player.y + player.h) < 138) {
+            hurtPlayer(enemy.damage + 6, enemy.x);
+          }
+        }
+      } else {
+        if (enemy.specialCooldown <= 0 && Math.abs(dx) < 180) {
+          enemy.slamTimer = 0.56;
+          enemy.slamResolved = false;
+          enemy.specialCooldown = bossPhase < 0.35 ? 2.2 : 2.8;
+        } else if (enemy.specialCooldown <= 0 && Math.abs(dx) >= 180) {
+          enemy.dashTimer = bossPhase < 0.35 ? 0.5 : 0.38;
+          enemy.specialCooldown = bossPhase < 0.35 ? 2.4 : 3.0;
+        }
+      }
+
+      const dashSpeed = bossPhase < 0.35 ? 5.2 : 4.4;
+      const target = enemy.dashTimer > 0 ? enemy.dir * dashSpeed : enemy.dir * bossSpeed;
+      enemy.vx = lerp(enemy.vx, target, enemy.onGround ? 0.1 : 0.06);
+      enemy.vy = Math.min(enemy.vy + 0.36 * dt, 8);
+      moveWithCollisions(enemy, dt);
+
+      if (player.hp > 0 && overlap(enemy, player) && enemy.attackCooldown <= 0) {
+        hurtPlayer(enemy.damage + (enemy.dashTimer > 0 ? 6 : 0), enemy.x);
+        enemy.attackCooldown = 0.88;
+      }
+    }
+
+    function updateEnemies(dt) {
+      for (const enemy of enemies) {
+        if (enemy.type === "boss") {
+          updateBoss(enemy, dt);
+        } else {
+          updateStandardEnemy(enemy, dt);
+        }
+      }
+    }
+
+    function updateCrystals(dt) {
+      for (const crystal of crystals) {
+        crystal.phase += 0.05 * dt;
+      }
+    }
+
+    function updateLoot(dt) {
+      for (const item of loot) {
+        item.life -= dt / 60;
+        item.phase += 0.25 * dt;
+        const centerX = item.x + 5;
+        const centerY = item.y + 5;
+        const playerCenterX = player.x + player.w / 2;
+        const playerCenterY = player.y + player.h / 2;
+        const itemDist = dist(centerX, centerY, playerCenterX, playerCenterY);
+        const attractRange = item.type === "gem" ? player.magnet + 36 : player.magnet;
+
+        if (itemDist < attractRange) {
+          const pull = (attractRange - itemDist) / attractRange;
+          item.vx += ((playerCenterX - centerX) / attractRange) * 0.52 * pull * dt;
+          item.vy += ((playerCenterY - centerY) / attractRange) * 0.44 * pull * dt;
+        }
+
+        item.vy += 0.2 * dt;
+        item.x += item.vx * dt;
+        item.y += item.vy * dt;
+
+        for (const solid of solids) {
+          const hit = { x: item.x, y: item.y, w: 10, h: 10 };
+          if (!overlap(hit, solid)) {
+            continue;
+          }
+          if (item.vy > 0) {
+            item.y = solid.y - 10;
+            item.vy *= -0.38;
+            item.vx *= 0.92;
+          }
+        }
+
+        if (itemDist < 22 && player.hp > 0) {
+          item.life = 0;
+          if (item.type === "gem") {
+            progress.gems += item.value;
+            saveProgress();
+            pushMessage(item.x - 2, item.y - 10, `+${item.value}💎`, "#74e8ff");
+          } else {
+            state.score += item.value;
+            pushMessage(item.x - 2, item.y - 10, `+${item.value}`, "#f8dd74");
+          }
+          playPickupSound(item.type);
+          updateHud();
+        }
+      }
+      loot = loot.filter((item) => item.life > 0);
+    }
+
+    function updateCollectibles() {
+      for (const crystal of crystals) {
+        if (crystal.collected) {
+          continue;
+        }
+        const hit = { x: crystal.x - 7, y: crystal.y - 14, w: 14, h: 20 };
+        if (overlap(player, hit)) {
+          crystal.collected = true;
+          progress.gems += crystal.value;
+          saveProgress();
+          playPickupSound("gem");
+          createSpecialBurst(crystal.x, crystal.y);
+          pushMessage(crystal.x - 10, crystal.y - 14, `+${crystal.value}💎`, "#74e8ff");
+          updateHud();
+        }
+      }
+    }
+
+    function updateParticles(dt) {
+      for (const particle of particles) {
+        particle.life -= dt / 60;
+        particle.vy += (particle.gravity || 0) * dt;
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+      }
+      particles = particles.filter((particle) => particle.life > 0);
+
+      for (const message of state.messageBursts) {
+        message.life -= dt / 60;
+        message.y -= 0.35 * dt;
+      }
+      state.messageBursts = state.messageBursts.filter((message) => message.life > 0);
+    }
+
+    function updateTutorial(dt) {
+      if (state.mode !== "playing") {
+        return;
+      }
+      state.tutorialTime -= dt / 60;
+      if (player.x > currentLevel.worldWidth * 0.28) {
+        state.tutorialTime = Math.min(state.tutorialTime, 1.5);
+      }
+      if (state.tutorialTime <= 1.2 && !tutorial.classList.contains("fade")) {
+        hideTutorial();
+      }
+    }
+
+    function updateCamera(dt) {
+      const target = clamp(player.x + player.w / 2 - GAME_W / 2, 0, currentLevel.worldWidth - GAME_W);
+      state.cameraX = lerp(state.cameraX, target, 0.1 * dt);
+      state.shakeTime = Math.max(0, state.shakeTime - dt / 60);
+      if (state.shakeTime <= 0) {
+        state.shakeStrength = 0;
+      }
+      gate.glow = lerp(gate.glow, state.gateUnlocked ? 1 : 0, 0.08 * dt);
+    }
+
+    function update(dt) {
+      state.time += dt / 60;
+      updateBanner(dt);
+      if (state.mode === "playing") {
+        updatePlayer(dt);
+        updateEnemies(dt);
+        updateCrystals(dt);
+        updateLoot(dt);
+        updateCollectibles();
+        updateParticles(dt);
+        updateTutorial(dt);
+        updateCamera(dt);
+      } else {
+        updateParticles(dt);
+      }
+    }
+
+    function worldToScreen(x, y, shakeX = 0, shakeY = 0) {
+      return { x: Math.round(x - state.cameraX + shakeX), y: Math.round(y + shakeY) };
+    }
+
+    function drawBackground(shakeX, shakeY) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, GAME_H);
+      gradient.addColorStop(0, currentLevel.palette.top);
+      gradient.addColorStop(0.45, currentLevel.palette.mid);
+      gradient.addColorStop(1, currentLevel.palette.bottom);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, GAME_W, GAME_H);
+
+      ctx.save();
+      ctx.translate(-state.cameraX * 0.14 + shakeX * 0.4, shakeY * 0.2);
+      ctx.fillStyle = currentLevel.palette.moon;
+      ctx.beginPath();
+      ctx.arc(120, 78, 34, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(24, 33, 41, 0.85)";
+      for (let i = 0; i < 12; i += 1) {
+        const x = i * 180;
+        const height = 90 + (i % 3) * 24;
+        ctx.fillRect(x, 170 - height, 48, height + 280);
+        ctx.fillRect(x + 58, 130 - height * 0.8, 32, height * 0.8 + 320);
+        ctx.fillRect(x + 96, 200 - height * 0.6, 60, height * 0.6 + 250);
+      }
+
+      ctx.fillStyle = "rgba(74, 102, 120, 0.18)";
+      for (let i = 0; i < 9; i += 1) {
+        const chainX = 80 + i * 170;
+        for (let y = 0; y < 220; y += 14) {
+          ctx.fillRect(chainX, y, 3, 8);
+          ctx.fillRect(chainX + 4, y + 8, 3, 8);
+        }
+      }
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(-state.cameraX * 0.35 + shakeX * 0.55, shakeY * 0.35);
+      ctx.fillStyle = "rgba(29, 41, 49, 0.84)";
+      for (let i = -1; i < 16; i += 1) {
+        const x = i * 150;
+        ctx.beginPath();
+        ctx.moveTo(x, 290);
+        ctx.lineTo(x + 46, 210);
+        ctx.lineTo(x + 80, 270);
+        ctx.lineTo(x + 110, 180);
+        ctx.lineTo(x + 160, 290);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawSolid(solid, shakeX, shakeY) {
+      const screen = worldToScreen(solid.x, solid.y, shakeX, shakeY);
+      const texture = solid.kind === "platform" ? patterns.platform : patterns.stone;
+      ctx.fillStyle = texture;
+      ctx.fillRect(screen.x, screen.y, solid.w, solid.h);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+      ctx.fillRect(screen.x, screen.y, solid.w, 4);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+      ctx.fillRect(screen.x, screen.y + solid.h - 6, solid.w, 6);
+      ctx.fillRect(screen.x + solid.w - 4, screen.y, 4, solid.h);
+    }
+
+    function drawTorch(torch, shakeX, shakeY) {
+      const screen = worldToScreen(torch.x, torch.y, shakeX, shakeY);
+      ctx.fillStyle = "#2d2518";
+      ctx.fillRect(screen.x, screen.y, 6, 18);
+      ctx.fillStyle = "#4c3c24";
+      ctx.fillRect(screen.x - 2, screen.y + 4, 10, 4);
+      const pulse = 0.5 + Math.sin(state.time * 8 + torch.x) * 0.5;
+      ctx.fillStyle = `rgba(247, 203, 92, ${0.22 + pulse * 0.18})`;
+      ctx.fillRect(screen.x - 18, screen.y - 18, 42, 32);
+      ctx.fillStyle = "#ffd574";
+      ctx.fillRect(screen.x, screen.y - 12, 6, 10);
+      ctx.fillStyle = "#f58e2f";
+      ctx.fillRect(screen.x + 1, screen.y - 9, 4, 8);
+      ctx.fillStyle = "#f1f5fb";
+      ctx.fillRect(screen.x + 2, screen.y - 5, 2, 4);
+    }
+
+    function drawBanner(banner, shakeX, shakeY) {
+      const screen = worldToScreen(banner.x, banner.y, shakeX, shakeY);
+      ctx.fillStyle = "#2b2016";
+      ctx.fillRect(screen.x, screen.y, 6, 46);
+      ctx.fillStyle = banner.color;
+      ctx.fillRect(screen.x + 6, screen.y + 4, 18, 26);
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.fillRect(screen.x + 8, screen.y + 6, 12, 3);
+    }
+
+    function drawGate(shakeX, shakeY) {
+      const screen = worldToScreen(gate.x, gate.y, shakeX, shakeY);
+      ctx.fillStyle = state.gateUnlocked ? "#5f8fd1" : "#2d3947";
+      ctx.fillRect(screen.x, screen.y, gate.w, gate.h);
+      ctx.fillStyle = state.gateUnlocked ? `rgba(142, 217, 255, ${0.24 + Math.sin(state.time * 6) * 0.08})` : "rgba(0, 0, 0, 0.32)";
+      ctx.fillRect(screen.x - 8, screen.y - 8, gate.w + 16, gate.h + 16);
+      ctx.fillStyle = "#10151a";
+      ctx.fillRect(screen.x + 8, screen.y + 10, 10, gate.h - 18);
+      ctx.fillRect(screen.x + 24, screen.y + 10, 10, gate.h - 18);
+      ctx.fillRect(screen.x + 40, screen.y + 10, 8, gate.h - 18);
+      if (!state.gateUnlocked) {
+        ctx.fillStyle = "#b57d33";
+        ctx.fillRect(screen.x + 10, screen.y + 22, gate.w - 20, 6);
+        ctx.fillRect(screen.x + 10, screen.y + 40, gate.w - 20, 6);
+      }
+    }
+
+    function drawCrystal(crystal, shakeX, shakeY) {
+      if (crystal.collected) {
+        return;
+      }
+      const floatY = Math.sin(crystal.phase) * 3;
+      const screen = worldToScreen(crystal.x, crystal.y + floatY, shakeX, shakeY);
+      ctx.fillStyle = "rgba(71, 215, 255, 0.22)";
+      ctx.fillRect(screen.x - 8, screen.y - 10, 16, 20);
+      ctx.fillStyle = "#137ba4";
+      ctx.fillRect(screen.x - 2, screen.y - 8, 4, 16);
+      ctx.fillRect(screen.x - 6, screen.y - 4, 12, 8);
+      ctx.fillStyle = "#7ef0ff";
+      ctx.fillRect(screen.x - 4, screen.y - 6, 8, 12);
+      ctx.fillStyle = "#e9fcff";
+      ctx.fillRect(screen.x - 1, screen.y - 3, 2, 4);
+    }
+
+    function drawLoot(shakeX, shakeY) {
+      for (const item of loot) {
+        const screen = worldToScreen(item.x, item.y, shakeX, shakeY);
+        if (item.type === "gem") {
+          ctx.fillStyle = "#135f89";
+          ctx.fillRect(screen.x, screen.y + 1, 10, 8);
+          ctx.fillStyle = "#68e9ff";
+          ctx.fillRect(screen.x + 1, screen.y, 8, 8);
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(screen.x + 3, screen.y + 2, 2, 2);
+        } else {
+          const shimmer = Math.sin(item.phase) > 0 ? "#ffdf66" : "#e0a430";
+          ctx.fillStyle = "#5e3a0a";
+          ctx.fillRect(screen.x, screen.y + 1, 10, 8);
+          ctx.fillStyle = shimmer;
+          ctx.fillRect(screen.x + 1, screen.y, 8, 8);
+          ctx.fillStyle = "#fff3be";
+          ctx.fillRect(screen.x + 3, screen.y + 2, 2, 2);
+        }
+      }
+    }
+
+    function drawPlayer(shakeX, shakeY) {
+      const px = worldToScreen(player.x, player.y, shakeX, shakeY).x;
+      const py = worldToScreen(player.x, player.y, shakeX, shakeY).y;
+      const bob = player.onGround ? Math.sin(player.animTime * 0.22) * Math.min(2, Math.abs(player.vx) * 0.6) : 0;
+      const swing = Math.sin(player.animTime * 0.36) * Math.min(3.8, Math.abs(player.vx) * 1.4);
+      const dir = player.dir;
+      const heavyGlow = player.attackType === "heavy" && player.attackTimer > 0 ? 1 : 0;
+
+      ctx.save();
+      ctx.translate(px + player.w / 2, py + player.h / 2 + bob);
+      if (dir < 0) {
+        ctx.scale(-1, 1);
+      }
+
+      const drawBlock = (x, y, w, h, color) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(x), Math.round(y), w, h);
+      };
+
+      drawBlock(-4, 25, 28, 6, "rgba(0,0,0,0.3)");
+
+      const attackSwing = player.attackTimer > 0 ? (player.attackType === "special" ? 22 : player.attackType === "heavy" ? 16 : 10) : 0;
+      const swordY = player.attackTimer > 0 ? -4 : 0;
+      const shieldRaise = player.specialTimer > 0 ? -4 : 0;
+
+      drawBlock(-12, -29, 8, 8, "#93211d");
+      drawBlock(-8, -33, 8, 8, "#c83d2c");
+      drawBlock(-2, -29, 8, 6, "#93211d");
+      drawBlock(-12, -21, 24, 12, "#dfe6ed");
+      drawBlock(-14, -18, 4, 8, "#bcc7d0");
+      drawBlock(10, -18, 4, 8, "#bcc7d0");
+      drawBlock(-6, -18, 12, 4, "#242d35");
+      drawBlock(2, -16, 2, 2, "#8bd4ff");
+      drawBlock(-14, -8, 28, 18, "#c8d3de");
+      drawBlock(-10, -6, 20, 14, "#8a98a8");
+      drawBlock(-4, -4, 8, 12, "#dfe6ed");
+      drawBlock(-12, 0, 4, 8, "#6f7d8c");
+      drawBlock(8, 0, 4, 8, "#6f7d8c");
+      drawBlock(-18, -4 + shieldRaise, 6, 18, "#8fa3b6");
+      drawBlock(-26, -8 + shieldRaise, 12, 24, "#2b63b4");
+      drawBlock(-24, -6 + shieldRaise, 8, 20, "#f5f8ff");
+      drawBlock(-22, -2 + shieldRaise, 4, 12, "#2b63b4");
+      drawBlock(-20, 1 + shieldRaise, 2, 4, "#f5d54d");
+      drawBlock(-18, 3 + shieldRaise, 2, 2, "#f5d54d");
+      drawBlock(-16, 1 + shieldRaise, 2, 2, "#f5d54d");
+
+      const swordX = 15 + attackSwing;
+      drawBlock(14, -2 + swordY, 5, 12, heavyGlow ? "#8e6d2a" : "#7b8793");
+      drawBlock(18, -14 + swordY, 4, 18, "#eff6fb");
+      drawBlock(19, -18 + swordY, 2, 4, "#c3d8ec");
+      drawBlock(14, 9 + swordY, 8, 4, "#c58d2b");
+      drawBlock(swordX, -20 + swordY, 3, 24, player.attackType === "special" ? "#90dfff" : "#e9f3ff");
+
+      const legOffset = player.onGround ? swing : -3;
+      drawBlock(-10, 10, 8, 16, "#8a98a8");
+      drawBlock(2, 10, 8, 16, "#8a98a8");
+      drawBlock(-10, 22 + legOffset, 8, 10, "#cfd7de");
+      drawBlock(2, 22 - legOffset, 8, 10, "#cfd7de");
+      drawBlock(-12, 30 + legOffset, 10, 4, "#4c5763");
+      drawBlock(2, 30 - legOffset, 10, 4, "#4c5763");
+
+      if (player.specialTimer > 0 || player.comboReadyTime > 0) {
+        ctx.strokeStyle = player.specialTimer > 0 ? "rgba(129, 216, 255, 0.85)" : "rgba(245, 212, 91, 0.75)";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, 0, 36 + Math.sin(state.time * 24) * 2, -0.8, 0.9);
+        ctx.stroke();
+      }
+
+      if (player.invuln > 0 && Math.floor(player.invuln * 18) % 2 === 0) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+        ctx.fillRect(-28, -40, 58, 80);
+      }
+      ctx.restore();
+    }
+
+    function drawEnemy(enemy, shakeX, shakeY) {
+      const px = worldToScreen(enemy.x, enemy.y, shakeX, shakeY).x;
+      const py = worldToScreen(enemy.x, enemy.y, shakeX, shakeY).y;
+      const step = Math.sin(enemy.animTime * 0.32) * 3;
+
+      ctx.save();
+      ctx.translate(px + enemy.w / 2, py + enemy.h / 2);
+      if (enemy.dir > 0) {
+        ctx.scale(-1, 1);
+      }
+
+      const drawBlock = (x, y, w, h, color) => {
+        ctx.fillStyle = enemy.flash > 0 ? "#ffffff" : color;
+        ctx.fillRect(Math.round(x), Math.round(y), w, h);
+      };
+
+      if (enemy.type === "boss") {
+        drawBlock(-18, 40, 46, 8, "rgba(0,0,0,0.3)");
+        drawBlock(-26, -44, 48, 22, "#58535b");
+        drawBlock(-12, -52, 20, 10, "#b7362c");
+        drawBlock(-8, -58, 12, 6, "#d7a83e");
+        drawBlock(-30, -18, 62, 42, enemy.colorA);
+        drawBlock(-20, -10, 42, 28, enemy.colorB);
+        drawBlock(-34, -10, 8, 34, "#434a54");
+        drawBlock(26, -10, 8, 34, "#434a54");
+        drawBlock(34, -2, 10, 40, "#8c5a2e");
+        drawBlock(42, -28, 6, 52, "#d8d8dc");
+        drawBlock(28, 18, 16, 6, "#a06834");
+        drawBlock(-20, 20, 14, 30, "#484f59");
+        drawBlock(4, 20, 14, 30, "#484f59");
+        drawBlock(-20, 40 + step, 14, 12, "#737d89");
+        drawBlock(4, 40 - step, 14, 12, "#737d89");
+      } else if (enemy.type === "hard") {
+        drawBlock(-8, 28, 30, 6, "rgba(0,0,0,0.3)");
+        drawBlock(-16, -24, 28, 14, "#5d5960");
+        drawBlock(-8, -30, 16, 8, "#81281f");
+        drawBlock(-12, -12, 30, 22, enemy.colorA);
+        drawBlock(-8, -8, 20, 16, enemy.colorB);
+        drawBlock(-20, -6, 6, 18, "#3d434d");
+        drawBlock(14, -6, 6, 18, "#3d434d");
+        drawBlock(20, -2, 8, 28, "#7d532e");
+        drawBlock(26, -18, 5, 32, "#d0d3d7");
+        drawBlock(14, 12, 12, 4, "#9a642d");
+        drawBlock(-10, 12, 10, 20, "#414852");
+        drawBlock(2, 12, 10, 20, "#414852");
+        drawBlock(-10, 26 + step, 10, 10, "#697380");
+        drawBlock(2, 26 - step, 10, 10, "#697380");
+      } else if (enemy.type === "medium") {
+        drawBlock(-4, 24, 24, 6, "rgba(0,0,0,0.28)");
+        drawBlock(-12, -20, 24, 12, "#59616d");
+        drawBlock(-10, -8, 24, 18, enemy.colorA);
+        drawBlock(-6, -5, 16, 14, enemy.colorB);
+        drawBlock(-16, -4, 4, 14, "#3e454f");
+        drawBlock(12, -4, 4, 14, "#3e454f");
+        drawBlock(16, -2, 6, 18, "#6f5136");
+        drawBlock(21, -12, 4, 22, "#d6d8dd");
+        drawBlock(14, 9, 8, 4, "#935c28");
+        drawBlock(-8, 10, 8, 16, "#404852");
+        drawBlock(2, 10, 8, 16, "#404852");
+        drawBlock(-8, 22 + step, 8, 10, "#68727f");
+        drawBlock(2, 22 - step, 8, 10, "#68727f");
+      } else {
+        drawBlock(-4, 23, 22, 5, "rgba(0,0,0,0.28)");
+        drawBlock(-11, -20, 22, 11, "#4c5059");
+        drawBlock(-10, -8, 20, 18, enemy.colorA);
+        drawBlock(-6, -6, 12, 14, enemy.colorB);
+        drawBlock(-14, -4, 4, 13, "#353945");
+        drawBlock(10, -4, 4, 13, "#353945");
+        drawBlock(14, -2, 5, 12, "#6f5136");
+        drawBlock(18, -14, 4, 22, "#b5b8bd");
+        drawBlock(12, 8, 10, 4, "#87552b");
+        drawBlock(-8, 10, 7, 15, "#3e454f");
+        drawBlock(1, 10, 7, 15, "#3e454f");
+        drawBlock(-8, 20 + step, 7, 10, "#626d79");
+        drawBlock(1, 20 - step, 7, 10, "#626d79");
+      }
+
+      ctx.restore();
+    }
+
+    function drawParticles(shakeX, shakeY) {
+      for (const particle of particles) {
+        const screen = worldToScreen(particle.x, particle.y, shakeX, shakeY);
+        ctx.globalAlpha = clamp(particle.life * 2, 0, 1);
+        ctx.fillStyle = particle.color;
+        ctx.fillRect(screen.x, screen.y, particle.size, particle.size);
+      }
+      ctx.globalAlpha = 1;
+
+      for (const message of state.messageBursts) {
+        const screen = worldToScreen(message.x, message.y, shakeX, shakeY);
+        ctx.fillStyle = message.color;
+        ctx.font = '11px "Press Start 2P"';
+        ctx.fillText(message.text, screen.x, screen.y);
+      }
+    }
+
+    function drawWorld() {
+      const shakeX = state.shakeTime > 0 ? rnd(-state.shakeStrength, state.shakeStrength) : 0;
+      const shakeY = state.shakeTime > 0 ? rnd(-state.shakeStrength * 0.45, state.shakeStrength * 0.45) : 0;
+      drawBackground(shakeX, shakeY);
+
+      for (const solid of solids) {
+        if (solid.x + solid.w < state.cameraX - 90 || solid.x > state.cameraX + GAME_W + 90) {
+          continue;
+        }
+        drawSolid(solid, shakeX, shakeY);
+      }
+
+      for (const banner of banners) {
+        if (banner.x < state.cameraX - 80 || banner.x > state.cameraX + GAME_W + 80) {
+          continue;
+        }
+        drawBanner(banner, shakeX, shakeY);
+      }
+
+      for (const torch of torches) {
+        if (torch.x < state.cameraX - 80 || torch.x > state.cameraX + GAME_W + 80) {
+          continue;
+        }
+        drawTorch(torch, shakeX, shakeY);
+      }
+
+      for (const crystal of crystals) {
+        if (crystal.x < state.cameraX - 80 || crystal.x > state.cameraX + GAME_W + 80) {
+          continue;
+        }
+        drawCrystal(crystal, shakeX, shakeY);
+      }
+
+      drawLoot(shakeX, shakeY);
+      drawGate(shakeX, shakeY);
+
+      for (const enemy of enemies) {
+        if (enemy.x + enemy.w < state.cameraX - 80 || enemy.x > state.cameraX + GAME_W + 80) {
+          continue;
+        }
+        drawEnemy(enemy, shakeX, shakeY);
+      }
+
+      if (player) {
+        drawPlayer(shakeX, shakeY);
+      }
+
+      drawParticles(shakeX, shakeY);
+
+      if (state.mode !== "playing") {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
+        ctx.fillRect(0, 0, GAME_W, GAME_H);
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, GAME_W, GAME_H);
+      drawWorld();
+    }
+
+    function gameLoop(timestamp) {
+      if (!lastTimestamp) {
+        lastTimestamp = timestamp;
+      }
+      const delta = Math.min(32, timestamp - lastTimestamp);
+      lastTimestamp = timestamp;
+      const dt = delta / 16.6667;
+      update(dt);
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function addPressSound(button, action) {
+      button.addEventListener("pointerdown", async () => {
+        await ensureAudio();
+        playMenuClick();
+        button.classList.add("pressed");
+      });
+      button.addEventListener("pointerup", () => button.classList.remove("pressed"));
+      button.addEventListener("pointerleave", () => button.classList.remove("pressed"));
+      button.addEventListener("click", async () => {
+        await ensureAudio();
+        action();
+      });
+    }
+
+    addPressSound(continueButton, continueCampaign);
+    addPressSound(document.getElementById("startButton"), () => startNewCampaign(0));
+    addPressSound(document.getElementById("chaptersButton"), openChapters);
+    addPressSound(document.getElementById("shopButton"), openShop);
+    addPressSound(document.getElementById("settingsButton"), () => openSettings("menu"));
+    addPressSound(document.getElementById("chaptersBackButton"), returnToMenu);
+    addPressSound(document.getElementById("shopBackButton"), returnToMenu);
+    addPressSound(chapterPrevButton, () => {
+      state.chapterPage = Math.max(0, state.chapterPage - 1);
+      renderChapterCards();
+    });
+    addPressSound(chapterNextButton, () => {
+      state.chapterPage = Math.min(Math.ceil(levels.length / CHAPTER_PAGE_SIZE) - 1, state.chapterPage + 1);
+      renderChapterCards();
+    });
+    addPressSound(shopPrevButton, () => {
+      state.shopPage = Math.max(0, state.shopPage - 1);
+      renderShopCards();
+    });
+    addPressSound(shopNextButton, () => {
+      state.shopPage = Math.min(Math.ceil(shopItems.length / SHOP_PAGE_SIZE) - 1, state.shopPage + 1);
+      renderShopCards();
+    });
+    addPressSound(document.getElementById("backButton"), backFromSettings);
+    addPressSound(document.getElementById("clearMenuButton"), returnToMenu);
+    addPressSound(document.getElementById("clearShopButton"), openShop);
+    addPressSound(nextLevelButton, () => {
+      if (state.levelIndex < LEVEL_COUNT - 1) {
+        beginLevel(state.levelIndex + 1, false);
+      }
+    });
+    addPressSound(document.getElementById("retryButton"), () => beginLevel(state.levelIndex, true));
+    addPressSound(document.getElementById("gameOverShopButton"), openShop);
+    addPressSound(document.getElementById("menuButton"), returnToMenu);
+    addPressSound(document.getElementById("hudSettingsButton"), () => openSettings("playing"));
+    addPressSound(document.getElementById("hudMenuButton"), returnToMenu);
+
+    chapterGrid.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-level]");
+      if (!button || button.disabled) {
+        return;
+      }
+      await ensureAudio();
+      playMenuClick();
+      startNewCampaign(Number(button.dataset.level));
+    });
+
+    shopGrid.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-upgrade]");
+      if (!button || button.disabled) {
+        return;
+      }
+      await ensureAudio();
+      playMenuClick();
+      buyUpgrade(button.dataset.upgrade);
+    });
+
+    musicSlider.value = progress.audio.music;
+    sfxSlider.value = progress.audio.sfx;
+    musicValue.textContent = `${progress.audio.music}%`;
+    sfxValue.textContent = `${progress.audio.sfx}%`;
+
+    musicSlider.addEventListener("input", async (event) => {
+      await ensureAudio();
+      const value = Number(event.target.value) / 100;
+      setMusicVolume(value);
+      musicValue.textContent = `${event.target.value}%`;
+      playEnvelopeTone(490, "triangle", 0.05, 0.03);
+    });
+
+    sfxSlider.addEventListener("input", async (event) => {
+      await ensureAudio();
+      const value = Number(event.target.value) / 100;
+      setSfxVolume(value);
+      sfxValue.textContent = `${event.target.value}%`;
+      playEnvelopeTone(620, "square", 0.04, 0.04);
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.repeat) {
+        if (event.code === "Space" || event.code === "ArrowUp" || event.code === "KeyW") {
+          input.jumpHeld = true;
+        }
+        return;
+      }
+      if (event.code === "KeyA" || event.code === "ArrowLeft") {
+        input.left = true;
+      }
+      if (event.code === "KeyD" || event.code === "ArrowRight") {
+        input.right = true;
+      }
+      if (event.code === "Space" || event.code === "ArrowUp" || event.code === "KeyW") {
+        queueJump();
+      }
+      if (event.code === "KeyZ") {
+        ensureAudio();
+        triggerLightAttack();
+      }
+      if (event.code === "KeyX") {
+        ensureAudio();
+        triggerHeavyAttack();
+      }
+      if (event.code === "Escape" && state.mode === "playing") {
+        returnToMenu();
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      if (event.code === "KeyA" || event.code === "ArrowLeft") {
+        input.left = false;
+      }
+      if (event.code === "KeyD" || event.code === "ArrowRight") {
+        input.right = false;
+      }
+      if (event.code === "Space" || event.code === "ArrowUp" || event.code === "KeyW") {
+        releaseJump();
+      }
+    });
+
+    let joystickActiveId = null;
+
+    function updateJoystick(pointerEvent) {
+      const rect = joystick.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = pointerEvent.clientX - centerX;
+      const dy = pointerEvent.clientY - centerY;
+      const radius = rect.width * 0.34;
+      const angle = Math.atan2(dy, dx);
+      const distance = Math.min(radius, Math.hypot(dx, dy));
+      const stickX = Math.cos(angle) * distance;
+      const stickY = Math.sin(angle) * distance;
+      joystickKnob.style.setProperty("--stickX", `${stickX}px`);
+      joystickKnob.style.setProperty("--stickY", `${stickY}px`);
+      input.joystickX = clamp(stickX / radius, -1, 1);
+      input.joystickY = clamp(stickY / radius, -1, 1);
+    }
+
+    function resetJoystick() {
+      input.joystickX = 0;
+      input.joystickY = 0;
+      joystickKnob.style.setProperty("--stickX", "0px");
+      joystickKnob.style.setProperty("--stickY", "0px");
+    }
+
+    joystick.addEventListener("pointerdown", async (event) => {
+      if (state.mode !== "playing") {
+        return;
+      }
+      await ensureAudio();
+      joystickActiveId = event.pointerId;
+      joystick.setPointerCapture(event.pointerId);
+      updateJoystick(event);
+    });
+
+    joystick.addEventListener("pointermove", (event) => {
+      if (joystickActiveId !== event.pointerId) {
+        return;
+      }
+      updateJoystick(event);
+    });
+
+    joystick.addEventListener("pointerup", (event) => {
+      if (joystickActiveId !== event.pointerId) {
+        return;
+      }
+      joystickActiveId = null;
+      resetJoystick();
+    });
+
+    joystick.addEventListener("pointercancel", () => {
+      joystickActiveId = null;
+      resetJoystick();
+    });
+
+    jumpButton.addEventListener("pointerdown", async () => {
+      if (state.mode !== "playing") {
+        return;
+      }
+      await ensureAudio();
+      queueJump();
+    });
+    jumpButton.addEventListener("pointerup", releaseJump);
+    jumpButton.addEventListener("pointercancel", releaseJump);
+    jumpButton.addEventListener("pointerleave", releaseJump);
+
+    lightButton.addEventListener("pointerdown", async () => {
+      if (state.mode !== "playing") {
+        return;
+      }
+      await ensureAudio();
+      triggerLightAttack();
+    });
+
+    heavyButton.addEventListener("pointerdown", async () => {
+      if (state.mode !== "playing") {
+        return;
+      }
+      await ensureAudio();
+      triggerHeavyAttack();
+    });
+
+    function bootFromHash() {
+      refreshMetaPanels();
+      renderChapterCards();
+      renderShopCards();
+      const playMatch = window.location.hash.match(/^#play(\d+)?$/i);
+      if (playMatch) {
+        const value = playMatch[1] ? Number(playMatch[1]) - 1 : 0;
+        startNewCampaign(clamp(value, 0, LEVEL_COUNT - 1));
+        return;
+      }
+      if (window.location.hash === "#chapters") {
+        openChapters();
+      } else if (window.location.hash === "#shop") {
+        openShop();
+      } else if (window.location.hash === "#settings") {
+        openSettings("menu");
+      } else {
+        returnToMenu();
+      }
+    }
+
+    beginLevel(0, true);
+    returnToMenu();
+    bootFromHash();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
