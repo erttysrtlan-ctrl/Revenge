@@ -51,19 +51,18 @@
       justify-items: center;
       gap: 12px;
     }
-
-    #gameShell {
-      position: relative;
-      width: min(94vw, 800px);
-      aspect-ratio: 16 / 9;
-      border: 6px solid #1c1208;
-      box-shadow:
-        0 0 0 4px #4d2f16,
-        0 28px 50px rgba(0, 0, 0, 0.45);
-      background: #050607;
-      overflow: hidden;
-      touch-action: none;
-    }
+#gameShell {
+  /* Genişliği ekranın %95'i ile sınırla, ama 800px'i geçmesin */
+  width: 95vw; 
+  max-width: 800px; 
+  
+  /* 16:9 oranını koru */
+  aspect-ratio: 16 / 9; 
+  
+  /* Kenar boşluklarını otomatik ayarla */
+  margin: auto;
+  position: relative;
+}
 
     #gameCanvas {
       width: 100%;
